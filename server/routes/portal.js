@@ -189,10 +189,13 @@ router.post('/backups/:filename/restore', requireAdmin, (req, res) => {
     fs.copyFileSync(filepath, DB_PATH);
 
     res.json({
-      message: `Database restored from ${filename}. A safety backup was saved as ${safetyName}. The server must be restarted for changes to take effect.`,
+      message: `Database restored from ${filename}. A safety backup was saved as ${safetyName}. Server is restarting...`,
       safety_backup: safetyName,
-      restart_required: true,
     });
+
+    // Auto-restart the process so sql.js reloads the restored database
+    // Delay slightly so the response is sent first
+    setTimeout(() => process.exit(0), 500);
   } catch (err) {
     res.status(500).json({ error: 'Failed to restore: ' + err.message });
   }

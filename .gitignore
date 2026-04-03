@@ -12,6 +12,8 @@ client/dist/
 # Environment variables
 .env
 .env.local
+.env.*
+!.env.example
 
 # Windows/WSL metadata
 *.Zone.Identifier
@@ -21,3 +23,10 @@ client/dist/
 
 # Real data exports (contains live job/financial data)
 scg_job_detail_export.csv
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db

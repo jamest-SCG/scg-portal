@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Database
+server/data/*.db
+server/data/*.db-shm
+server/data/*.db-wal
+
+# Frontend build
+client/dist/
+
+# Environment variables
+.env
+.env.local
+
+# Windows/WSL metadata
+*.Zone.Identifier
+
+# Claude Code config
+.claude/
+
+# Real data exports (contains live job/financial data)
+scg_job_detail_export.csv

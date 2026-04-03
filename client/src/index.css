@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply text-gray-800 antialiased;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-navy text-white px-4 py-2 rounded-lg font-medium
+           hover:bg-navy-dark transition-colors duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply bg-navy-light text-white px-4 py-2 rounded-lg font-medium
+           hover:bg-navy transition-colors duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-outline {
+    @apply border border-navy text-navy px-4 py-2 rounded-lg font-medium
+           hover:bg-navy hover:text-white transition-colors duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .input-field {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg
+           focus:outline-none focus:ring-2 focus:ring-navy-light focus:border-transparent
+           text-sm;
+  }
+
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-200;
+  }
+}
+
+/* Number input - hide arrows */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}

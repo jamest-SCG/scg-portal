@@ -245,6 +245,7 @@ export default function JobCard({ job, onUpdate, onSubmit }) {
                     min="0"
                     value={formData[m.key] || ''}
                     onChange={(e) => handleChange(m.key, e.target.value)}
+                    onWheel={(e) => e.target.blur()}
                     disabled={isLocked}
                     placeholder="0"
                     className="input-field text-sm"
@@ -266,6 +267,7 @@ export default function JobCard({ job, onUpdate, onSubmit }) {
               min="0"
               value={formData.ctc_override}
               onChange={(e) => handleChange('ctc_override', e.target.value)}
+              onWheel={(e) => e.target.blur()}
               disabled={isLocked}
               placeholder="Leave blank for formula"
               className={`input-field text-sm max-w-xs ${isOverBudget ? 'border-yellow-400 bg-yellow-50' : ''}`}

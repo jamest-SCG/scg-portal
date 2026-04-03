@@ -110,6 +110,7 @@ export default function CostCodeTable({ jobNo, isLocked, onCTCChange }) {
                       step="0.01"
                       value={cc.pm_revised_est != null ? cc.pm_revised_est : ''}
                       onChange={(e) => handleEstChange(cc.cost_code_no, e.target.value)}
+                      onWheel={(e) => e.target.blur()}
                       placeholder={cc.revised_est_cost ? String(cc.revised_est_cost) : '0'}
                       className="w-24 px-1.5 py-0.5 border border-gray-200 rounded text-right text-xs font-mono focus:ring-1 focus:ring-amber-400 focus:border-transparent"
                     />

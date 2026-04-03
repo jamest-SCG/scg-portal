@@ -95,6 +95,31 @@ router.get('/:jobNo', (req, res) => {
   res.json(enrichWithCTC([job])[0]);
 });
 
+// PUT /api/pm/jobs/:jobNo/assign - reassign PM and/or division (admin/pm_admin only)
+router.put('/:jobNo/assign', (req, res) => {
+  if (!isPMAdmin(req.user)) {
+    return res.status(403).json({ error: 'Admin access required.' });
+  }
+
+  const { jobNo } = req.params;
+  const { pm, division } = req.body;
+
+  const job = queryOne('SELECT job_no FROM jobs WHERE job_no = ?', [jobNo]);
+  if (!job) {
+    return res.status(404).json({ error: 'Job not found.' });
+  }
+
+  if (pm !== undefined) {
+    run('UPDATE jobs SET pm = ? WHERE job_no = ?', [pm, jobNo]);
+    run('UPDATE submissions SET pm = ? WHERE job_no = ?', [pm, jobNo]);
+  }
+  if (division !== undefined) {
+    run('UPDATE jobs SET division = ? WHERE job_no = ?', [division, jobNo]);
+  }
+
+  res.json({ message: `Job ${jobNo} updated.` });
+});
+
 // GET /api/pm/jobs/:jobNo/cost-codes - get cost codes for a job
 router.get('/:jobNo/cost-codes', (req, res) => {
   const { jobNo } = req.params;

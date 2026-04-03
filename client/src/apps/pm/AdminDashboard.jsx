@@ -20,19 +20,22 @@ export default function AdminDashboard() {
   const [pmStats, setPmStats] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [incomplete, setIncomplete] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
 
   const fetchData = useCallback(async () => {
     try {
-      const [statsRes, jobsRes, incompleteRes] = await Promise.all([
+      const [statsRes, jobsRes, incompleteRes, usersRes] = await Promise.all([
         authFetch('/api/pm/submissions/status'),
         authFetch('/api/pm/jobs'),
         authFetch('/api/pm/admin/incomplete'),
+        fetch('/api/auth/users').then(r => r.json()).catch(() => []),
       ]);
       setPmStats(await statsRes.json());
       setJobs(await jobsRes.json());
       setIncomplete(await incompleteRes.json());
+      setUsers(usersRes);
     } catch (err) {
       console.error(err);
     } finally {
@@ -69,6 +72,18 @@ export default function AdminDashboard() {
         alert(data.message);
         fetchData();
       }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleReassign = async (jobNo, field, value) => {
+    try {
+      await authFetch(`/api/pm/jobs/${jobNo}/assign`, {
+        method: 'PUT',
+        body: JSON.stringify({ [field]: value }),
+      });
+      setJobs(prev => prev.map(j => j.job_no === jobNo ? { ...j, [field]: value } : j));
     } catch (err) {
       console.error(err);
     }
@@ -303,11 +318,28 @@ export default function AdminDashboard() {
                       <td className="px-3 py-2 font-mono font-medium whitespace-nowrap">{j.job_no}</td>
                       <td className="px-3 py-2 max-w-[200px] truncate">{j.job_name}</td>
                       <td className="px-3 py-2 text-center">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          j.division === 'CLE' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
-                        }`}>{j.division}</span>
+                        <select
+                          value={j.division || ''}
+                          onChange={(e) => handleReassign(j.job_no, 'division', e.target.value)}
+                          className="text-xs px-1 py-0.5 border border-transparent hover:border-gray-300 rounded bg-transparent cursor-pointer focus:ring-1 focus:ring-navy-light"
+                        >
+                          <option value="">—</option>
+                          <option value="CLE">CLE</option>
+                          <option value="CBUS">CBUS</option>
+                        </select>
                       </td>
-                      <td className="px-3 py-2 text-center text-xs">{j.pm}</td>
+                      <td className="px-3 py-2 text-center">
+                        <select
+                          value={j.pm || ''}
+                          onChange={(e) => handleReassign(j.job_no, 'pm', e.target.value)}
+                          className="text-xs px-1 py-0.5 border border-transparent hover:border-gray-300 rounded bg-transparent cursor-pointer focus:ring-1 focus:ring-navy-light"
+                        >
+                          <option value="">Unassigned</option>
+                          {users.map(u => (
+                            <option key={u.id} value={u.initials}>{u.initials}</option>
+                          ))}
+                        </select>
+                      </td>
                       <td className="px-3 py-2 text-right font-mono text-xs">{fmt(j.remaining)}</td>
                       {MONTH_KEYS.map(k => (
                         <td key={k} className="px-2 py-2 text-right font-mono text-xs">

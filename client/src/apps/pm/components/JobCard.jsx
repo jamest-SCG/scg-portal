@@ -53,10 +53,18 @@ export default function JobCard({ job, onUpdate, onSubmit }) {
   const gap = remaining - monthSum;
   const isValid = remaining <= 0.01 || gap <= 0.01;
 
-  // Use PM revised total if available, otherwise fall back to original est_cost
-  const effectiveEst = job.pm_revised_total != null ? job.pm_revised_total : (job.est_cost || 0);
+  // Local CTC state that updates in real-time as PM edits cost codes
+  const [localPMRevisedTotal, setLocalPMRevisedTotal] = useState(null);
+  const [localCTC, setLocalCTC] = useState(null);
+
+  const effectiveEst = (localPMRevisedTotal != null ? localPMRevisedTotal : job.pm_revised_total) ?? (job.est_cost || 0);
   const isOverBudget = effectiveEst > 0 && (job.cost_to_date || 0) > effectiveEst;
-  const ctcCalculated = job.ctc_calculated;
+  const ctcCalculated = localCTC != null ? localCTC : job.ctc_calculated;
+
+  const handleCTCChange = useCallback((pmRevisedTotal, ctc) => {
+    setLocalPMRevisedTotal(pmRevisedTotal);
+    setLocalCTC(ctc);
+  }, []);
 
   const autoSave = useCallback(async (data) => {
     if (isLocked) return;
@@ -168,7 +176,7 @@ export default function JobCard({ job, onUpdate, onSubmit }) {
           {job.has_cost_codes > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <InfoCell label="Original Est" value={fmt(job.est_cost)} />
-              <InfoCell label="PM Revised Est" value={job.pm_revised_total != null ? fmt(job.pm_revised_total) : '-'} />
+              <InfoCell label="PM Revised Est" value={effectiveEst ? fmt(effectiveEst) : '-'} />
               <InfoCell label="Actual to Date" value={fmt(job.cost_to_date)} />
               <InfoCell
                 label="Est. Cost to Complete"
@@ -200,7 +208,7 @@ export default function JobCard({ job, onUpdate, onSubmit }) {
             </button>
             {showCostCodes && (
               <div className="mt-2">
-                <CostCodeTable jobNo={job.job_no} isLocked={isLocked} />
+                <CostCodeTable jobNo={job.job_no} isLocked={isLocked} onCTCChange={handleCTCChange} />
               </div>
             )}
           </div>

@@ -8,7 +8,7 @@ function fmt(val) {
   return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
-export default function CostCodeTable({ jobNo, isLocked }) {
+export default function CostCodeTable({ jobNo, isLocked, onCTCChange }) {
   const { authFetch } = useAuth();
   const [costCodes, setCostCodes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,11 +25,22 @@ export default function CostCodeTable({ jobNo, isLocked }) {
 
   const handleEstChange = useCallback((costCodeNo, value) => {
     // Update local state immediately
-    setCostCodes(prev => prev.map(cc =>
-      cc.cost_code_no === costCodeNo
-        ? { ...cc, pm_revised_est: value === '' ? null : parseFloat(value) }
-        : cc
-    ));
+    setCostCodes(prev => {
+      const updated = prev.map(cc =>
+        cc.cost_code_no === costCodeNo
+          ? { ...cc, pm_revised_est: value === '' ? null : parseFloat(value) }
+          : cc
+      );
+      // Report CTC change to parent
+      if (onCTCChange) {
+        const pmRevisedTotal = updated.reduce((sum, cc) => {
+          return sum + (cc.pm_revised_est != null ? cc.pm_revised_est : (cc.revised_est_cost || 0));
+        }, 0);
+        const totalCostsToDate = updated.reduce((sum, cc) => sum + (cc.costs_to_date || 0), 0);
+        onCTCChange(pmRevisedTotal, pmRevisedTotal - totalCostsToDate);
+      }
+      return updated;
+    });
 
     // Debounced save
     if (debounceRefs.current[costCodeNo]) clearTimeout(debounceRefs.current[costCodeNo]);
@@ -43,7 +54,7 @@ export default function CostCodeTable({ jobNo, isLocked }) {
       } catch {}
       setSavingCode(null);
     }, 1500);
-  }, [jobNo, authFetch]);
+  }, [jobNo, authFetch, onCTCChange]);
 
   if (loading) {
     return (

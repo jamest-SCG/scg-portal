@@ -55,7 +55,7 @@ function enrichWithCTC(jobs) {
       return sum + (cc.pm_revised_est != null ? cc.pm_revised_est : (cc.revised_est_cost || 0));
     }, 0);
     const totalCostsToDate = codes.reduce((sum, cc) => sum + (cc.costs_to_date || 0), 0);
-    const ctcCalculated = pmRevisedTotal - totalCostsToDate;
+    const ctcCalculated = Math.max(0, pmRevisedTotal - totalCostsToDate);
 
     return {
       ...job,

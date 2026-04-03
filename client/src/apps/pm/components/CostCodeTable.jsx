@@ -37,7 +37,7 @@ export default function CostCodeTable({ jobNo, isLocked, onCTCChange }) {
           return sum + (cc.pm_revised_est != null ? cc.pm_revised_est : (cc.revised_est_cost || 0));
         }, 0);
         const totalCostsToDate = updated.reduce((sum, cc) => sum + (cc.costs_to_date || 0), 0);
-        onCTCChange(pmRevisedTotal, pmRevisedTotal - totalCostsToDate);
+        onCTCChange(pmRevisedTotal, Math.max(0, pmRevisedTotal - totalCostsToDate));
       }
       return updated;
     });

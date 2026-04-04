@@ -1,21 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../../../context/AuthContext';
+import { useCycle } from '../context/CycleContext';
 import CostCodeTable from './CostCodeTable';
 import ConfirmModal from '../../../components/ConfirmModal';
-
-const MONTHS = [
-  { key: 'feb_26', label: 'Feb 26' },
-  { key: 'mar_26', label: 'Mar 26' },
-  { key: 'apr_26', label: 'Apr 26' },
-  { key: 'may_26', label: 'May 26' },
-  { key: 'jun_26', label: 'Jun 26' },
-  { key: 'jul_26', label: 'Jul 26' },
-  { key: 'aug_26', label: 'Aug 26' },
-  { key: 'sep_26', label: 'Sep 26' },
-  { key: 'oct_26', label: 'Oct 26' },
-  { key: 'nov_26', label: 'Nov 26' },
-  { key: 'dec_26', label: 'Dec 26' },
-];
 
 function fmt(val) {
   if (val === null || val === undefined || val === '') return '-';
@@ -31,6 +18,7 @@ function fmtPct(val) {
 
 export default function JobCard({ job, onUpdate, onSubmit }) {
   const { authFetch } = useAuth();
+  const { months: MONTHS } = useCycle();
   const [expanded, setExpanded] = useState(false);
   const [formData, setFormData] = useState({});
   const [saving, setSaving] = useState(false);

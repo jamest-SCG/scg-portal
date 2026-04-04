@@ -81,6 +81,12 @@ async function getDb() {
     console.log('Added change_orders column to jobs table.');
   }
 
+  // Migrate to dynamic billing cycles if submissions still has hardcoded month columns
+  const subCols = queryAllRaw("PRAGMA table_info(submissions)").map(c => c.name);
+  if (subCols.includes('feb_26')) {
+    migrateToBillingCycles();
+  }
+
   save();
   return db;
 }
@@ -136,28 +142,43 @@ function createTables() {
   `);
 
   db.run(`
+    CREATE TABLE IF NOT EXISTS billing_cycles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      months TEXT NOT NULL,
+      is_active INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL,
+      archived_at TEXT
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS billing_entries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      cycle_id INTEGER NOT NULL,
+      job_no TEXT NOT NULL,
+      month_key TEXT NOT NULL,
+      amount REAL DEFAULT 0,
+      FOREIGN KEY (cycle_id) REFERENCES billing_cycles(id),
+      FOREIGN KEY (job_no) REFERENCES jobs(job_no) ON DELETE CASCADE,
+      UNIQUE(cycle_id, job_no, month_key)
+    )
+  `);
+
+  db.run(`
     CREATE TABLE IF NOT EXISTS submissions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       job_no TEXT NOT NULL,
+      cycle_id INTEGER NOT NULL,
       pm TEXT,
-      feb_26 REAL DEFAULT 0,
-      mar_26 REAL DEFAULT 0,
-      apr_26 REAL DEFAULT 0,
-      may_26 REAL DEFAULT 0,
-      jun_26 REAL DEFAULT 0,
-      jul_26 REAL DEFAULT 0,
-      aug_26 REAL DEFAULT 0,
-      sep_26 REAL DEFAULT 0,
-      oct_26 REAL DEFAULT 0,
-      nov_26 REAL DEFAULT 0,
-      dec_26 REAL DEFAULT 0,
       ctc_override REAL,
       schedule_valid INTEGER DEFAULT 0,
       submitted_at TEXT,
       last_updated TEXT,
       notes TEXT,
       FOREIGN KEY (job_no) REFERENCES jobs(job_no),
-      UNIQUE(job_no)
+      FOREIGN KEY (cycle_id) REFERENCES billing_cycles(id),
+      UNIQUE(job_no, cycle_id)
     )
   `);
 
@@ -294,32 +315,135 @@ function migrate() {
   `);
 
   db.run(`
+    CREATE TABLE IF NOT EXISTS billing_cycles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      months TEXT NOT NULL,
+      is_active INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL,
+      archived_at TEXT
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS billing_entries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      cycle_id INTEGER NOT NULL,
+      job_no TEXT NOT NULL,
+      month_key TEXT NOT NULL,
+      amount REAL DEFAULT 0,
+      FOREIGN KEY (cycle_id) REFERENCES billing_cycles(id),
+      FOREIGN KEY (job_no) REFERENCES jobs(job_no) ON DELETE CASCADE,
+      UNIQUE(cycle_id, job_no, month_key)
+    )
+  `);
+
+  db.run(`
     CREATE TABLE IF NOT EXISTS submissions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       job_no TEXT NOT NULL,
+      cycle_id INTEGER NOT NULL,
       pm TEXT,
-      feb_26 REAL DEFAULT 0,
-      mar_26 REAL DEFAULT 0,
-      apr_26 REAL DEFAULT 0,
-      may_26 REAL DEFAULT 0,
-      jun_26 REAL DEFAULT 0,
-      jul_26 REAL DEFAULT 0,
-      aug_26 REAL DEFAULT 0,
-      sep_26 REAL DEFAULT 0,
-      oct_26 REAL DEFAULT 0,
-      nov_26 REAL DEFAULT 0,
-      dec_26 REAL DEFAULT 0,
       ctc_override REAL,
       schedule_valid INTEGER DEFAULT 0,
       submitted_at TEXT,
       last_updated TEXT,
       notes TEXT,
       FOREIGN KEY (job_no) REFERENCES jobs(job_no),
-      UNIQUE(job_no)
+      FOREIGN KEY (cycle_id) REFERENCES billing_cycles(id),
+      UNIQUE(job_no, cycle_id)
     )
   `);
 
   console.log('Migration complete.');
+}
+
+function migrateToBillingCycles() {
+  console.log('Migrating to dynamic billing cycles...');
+
+  const MONTH_KEYS = ['feb_26','mar_26','apr_26','may_26','jun_26','jul_26','aug_26','sep_26','oct_26','nov_26','dec_26'];
+  const MONTH_LABELS = ['Feb 26','Mar 26','Apr 26','May 26','Jun 26','Jul 26','Aug 26','Sep 26','Oct 26','Nov 26','Dec 26'];
+  const monthsJson = JSON.stringify(MONTH_KEYS.map((key, i) => ({ key, label: MONTH_LABELS[i] })));
+
+  // 1. Create billing_cycles table (may already exist from createTables)
+  db.run('DROP TABLE IF EXISTS billing_cycles');
+  db.run('DROP TABLE IF EXISTS billing_entries');
+  db.run(`
+    CREATE TABLE billing_cycles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      months TEXT NOT NULL,
+      is_active INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL,
+      archived_at TEXT
+    )
+  `);
+
+  // 2. Create billing_entries table
+  db.run(`
+    CREATE TABLE billing_entries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      cycle_id INTEGER NOT NULL,
+      job_no TEXT NOT NULL,
+      month_key TEXT NOT NULL,
+      amount REAL DEFAULT 0,
+      FOREIGN KEY (cycle_id) REFERENCES billing_cycles(id),
+      FOREIGN KEY (job_no) REFERENCES jobs(job_no) ON DELETE CASCADE,
+      UNIQUE(cycle_id, job_no, month_key)
+    )
+  `);
+
+  // 3. Seed the current cycle
+  const now = new Date().toISOString();
+  db.run(
+    'INSERT INTO billing_cycles (name, months, is_active, created_at) VALUES (?, ?, 1, ?)',
+    ['FY2026 Feb-Dec', monthsJson, now]
+  );
+  const cycle = queryAllRaw('SELECT id FROM billing_cycles WHERE is_active = 1');
+  const cycleId = cycle[0].id;
+
+  // 4. Migrate existing submission month data to billing_entries
+  const oldSubmissions = queryAllRaw('SELECT * FROM submissions');
+  for (const sub of oldSubmissions) {
+    for (const key of MONTH_KEYS) {
+      const amount = sub[key] || 0;
+      db.run(
+        'INSERT INTO billing_entries (cycle_id, job_no, month_key, amount) VALUES (?, ?, ?, ?)',
+        [cycleId, sub.job_no, key, amount]
+      );
+    }
+  }
+  console.log(`Migrated ${oldSubmissions.length} submissions x ${MONTH_KEYS.length} months to billing_entries.`);
+
+  // 5. Rebuild submissions table without month columns
+  db.run(`
+    CREATE TABLE submissions_new (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      job_no TEXT NOT NULL,
+      cycle_id INTEGER NOT NULL,
+      pm TEXT,
+      ctc_override REAL,
+      schedule_valid INTEGER DEFAULT 0,
+      submitted_at TEXT,
+      last_updated TEXT,
+      notes TEXT,
+      FOREIGN KEY (job_no) REFERENCES jobs(job_no),
+      FOREIGN KEY (cycle_id) REFERENCES billing_cycles(id),
+      UNIQUE(job_no, cycle_id)
+    )
+  `);
+
+  for (const sub of oldSubmissions) {
+    db.run(
+      'INSERT INTO submissions_new (job_no, cycle_id, pm, ctc_override, schedule_valid, submitted_at, last_updated, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [sub.job_no, cycleId, sub.pm, sub.ctc_override, sub.schedule_valid, sub.submitted_at, sub.last_updated, sub.notes]
+    );
+  }
+
+  db.run('DROP TABLE submissions');
+  db.run('ALTER TABLE submissions_new RENAME TO submissions');
+
+  console.log('Billing cycles migration complete.');
 }
 
 // Raw query helper used during migration (before db is fully set up)
@@ -373,4 +497,14 @@ function runBatch(statements) {
   save();
 }
 
-module.exports = { getDb, save, queryAll, queryOne, run, runBatch };
+function getActiveCycle() {
+  return queryOne('SELECT * FROM billing_cycles WHERE is_active = 1');
+}
+
+function getActiveCycleMonths() {
+  const cycle = getActiveCycle();
+  if (!cycle) return [];
+  return JSON.parse(cycle.months);
+}
+
+module.exports = { getDb, save, queryAll, queryOne, run, runBatch, getActiveCycle, getActiveCycleMonths };

@@ -8,6 +8,7 @@ import ForcedPinResetPage from './pages/ForcedPinResetPage';
 import PMDashboard from './apps/pm/PMDashboard';
 import PMAdminDashboard from './apps/pm/AdminDashboard';
 import SubmitConfirmation from './apps/pm/SubmitConfirmation';
+import { CycleProvider } from './apps/pm/context/CycleContext';
 
 function ProtectedRoute({ children, app, adminOnly, appAdminOnly }) {
   const { user, loading } = useAuth();
@@ -84,7 +85,7 @@ function AppRoutes() {
         path="/pm"
         element={
           <ProtectedRoute app="pm">
-            <PMDashboard />
+            <CycleProvider><PMDashboard /></CycleProvider>
           </ProtectedRoute>
         }
       />
@@ -100,7 +101,7 @@ function AppRoutes() {
         path="/pm/admin"
         element={
           <ProtectedRoute app="pm" appAdminOnly="pm">
-            <PMAdminDashboard />
+            <CycleProvider><PMAdminDashboard /></CycleProvider>
           </ProtectedRoute>
         }
       />

@@ -69,6 +69,7 @@ async function start() {
   app.use('/api/portal', authenticateToken, require('./routes/portal'));
 
   // === PM Portal Routes ===
+  app.use('/api/pm/cycles', authenticateToken, requireAppAccess('pm'), require('./routes/pm/cycles'));
   app.use('/api/pm/jobs', authenticateToken, requireAppAccess('pm'), require('./routes/pm/jobs'));
   app.use('/api/pm/submissions', authenticateToken, requireAppAccess('pm'), require('./routes/pm/submissions'));
   app.use('/api/pm/admin', authenticateToken, requireAppAccess('pm'), requireAppAdmin('pm'), require('./routes/pm/admin'));

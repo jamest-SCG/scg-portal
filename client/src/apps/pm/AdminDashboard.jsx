@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useCycle } from './context/CycleContext';
 import Header from '../../components/Header';
+import ConfirmModal from '../../components/ConfirmModal';
 import ImportPanel from './components/ImportPanel';
 import RevenueCharts from './components/RevenueCharts';
 
@@ -11,18 +13,16 @@ function fmt(val) {
   return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
-const MONTH_LABELS = ['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const MONTH_KEYS = ['feb_26','mar_26','apr_26','may_26','jun_26','jul_26','aug_26','sep_26','oct_26','nov_26','dec_26'];
-
 export default function AdminDashboard() {
   const { authFetch } = useAuth();
+  const { monthLabels: MONTH_LABELS, monthKeys: MONTH_KEYS, cycle } = useCycle();
   const [activeTab, setActiveTab] = useState('overview');
   const [pmStats, setPmStats] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [incomplete, setIncomplete] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  const [confirmAction, setConfirmAction] = useState(null); // { title, message, confirmLabel, onConfirm }
 
   const fetchData = useCallback(async () => {
     try {
@@ -64,12 +64,10 @@ export default function AdminDashboard() {
 
   // New cycle
   const handleNewCycle = async () => {
-    if (!window.confirm('This will unlock all submissions for editing. Are you sure?')) return;
     try {
       const res = await authFetch('/api/pm/admin/new-cycle', { method: 'POST', body: JSON.stringify({}) });
       const data = await res.json();
       if (res.ok) {
-        alert(data.message);
         fetchData();
       }
     } catch (err) {
@@ -90,7 +88,6 @@ export default function AdminDashboard() {
   };
 
   const handleUnlockJob = async (jobNo) => {
-    if (!window.confirm(`Unlock job ${jobNo}? The PM will be able to edit and re-submit it.`)) return;
     try {
       const res = await authFetch(`/api/pm/admin/unlock/${jobNo}`, { method: 'POST', body: JSON.stringify({}) });
       const data = await res.json();
@@ -153,7 +150,12 @@ export default function AdminDashboard() {
             <div className="card p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900">Cycle Status</h2>
-                <button onClick={handleNewCycle} className="btn-outline text-sm">
+                <button onClick={() => setConfirmAction({
+                  title: 'Open New Cycle',
+                  message: 'This will unlock all submissions for editing. Are you sure?',
+                  confirmLabel: 'Unlock All',
+                  onConfirm: () => { setConfirmAction(null); handleNewCycle(); },
+                })} className="btn-outline text-sm">
                   Open New Cycle
                 </button>
               </div>
@@ -281,7 +283,7 @@ export default function AdminDashboard() {
             <div className="bg-gray-50 rounded-lg p-4 mt-4">
               <h3 className="text-sm font-medium text-gray-700 mb-2">Export Format</h3>
               <p className="text-xs text-gray-500 font-mono">
-                job_no, feb_26, mar_26, apr_26, may_26, jun_26, jul_26, aug_26, sep_26, oct_26, nov_26, dec_26, ctc_override
+                job_no, {MONTH_KEYS.join(', ')}, ctc_override
               </p>
               <p className="text-xs text-gray-500 mt-2">
                 Filename: SCG_PM_Submissions_YYYY-MM-DD.csv
@@ -368,7 +370,12 @@ export default function AdminDashboard() {
                       <td className="px-3 py-2 text-center">
                         {j.submitted_at && (
                           <button
-                            onClick={() => handleUnlockJob(j.job_no)}
+                            onClick={() => setConfirmAction({
+                              title: 'Unlock Job',
+                              message: `Unlock job ${j.job_no}? The PM will be able to edit and re-submit it.`,
+                              confirmLabel: 'Unlock',
+                              onConfirm: () => { setConfirmAction(null); handleUnlockJob(j.job_no); },
+                            })}
                             className="text-xs text-amber-600 hover:text-amber-800 font-medium"
                           >
                             Unlock
@@ -388,6 +395,15 @@ export default function AdminDashboard() {
           <RevenueCharts />
         )}
       </main>
+
+      <ConfirmModal
+        open={!!confirmAction}
+        title={confirmAction?.title || ''}
+        message={confirmAction?.message || ''}
+        confirmLabel={confirmAction?.confirmLabel || 'Confirm'}
+        onConfirm={confirmAction?.onConfirm || (() => {})}
+        onCancel={() => setConfirmAction(null)}
+      />
     </div>
   );
 }

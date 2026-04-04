@@ -1,6 +1,6 @@
 const express = require('express');
 const multer = require('multer');
-const { queryAll, queryOne, run, runBatch } = require('../../db');
+const { queryAll, queryOne, run, runBatch, getActiveCycle, getActiveCycleMonths } = require('../../db');
 const { parseFoundationCSV } = require('../../parsers/foundation');
 
 const router = express.Router();
@@ -81,6 +81,10 @@ router.post('/import/confirm', (req, res) => {
       return res.status(400).json({ error: 'No data to import.' });
     }
 
+    const cycle = getActiveCycle();
+    if (!cycle) return res.status(500).json({ error: 'No active billing cycle.' });
+    const months = JSON.parse(cycle.months);
+
     const now = new Date().toISOString();
     const statements = [];
     let newCount = 0;
@@ -113,11 +117,19 @@ router.post('/import/confirm', (req, res) => {
           [jobNo, parsed.job_name || '', division, pm, contract, estCost, costToDate, billed, remaining, pctComplete, footer.client_name || '', footer.change_orders || 0, now]
         ]);
 
-        // Insert blank submission row
+        // Insert blank submission row for active cycle
         statements.push([
-          'INSERT OR IGNORE INTO submissions (job_no, pm, last_updated) VALUES (?, ?, ?)',
-          [jobNo, pm, now]
+          'INSERT OR IGNORE INTO submissions (job_no, cycle_id, pm, last_updated) VALUES (?, ?, ?, ?)',
+          [jobNo, cycle.id, pm, now]
         ]);
+
+        // Insert blank billing entries for active cycle
+        for (const m of months) {
+          statements.push([
+            'INSERT OR IGNORE INTO billing_entries (cycle_id, job_no, month_key, amount) VALUES (?, ?, ?, 0)',
+            [cycle.id, jobNo, m.key]
+          ]);
+        }
 
         // Insert all cost codes
         for (const cc of parsed.cost_codes) {
@@ -137,7 +149,7 @@ router.post('/import/confirm', (req, res) => {
           [contract, estCost, costToDate, billed, remaining, pctComplete, footer.client_name || '', footer.change_orders || 0, now, jobNo]
         ]);
 
-        // Upsert cost codes — update actuals, preserve PM estimates and budget fields
+        // Upsert cost codes — update actuals, preserve PM estimates
         for (const cc of parsed.cost_codes) {
           statements.push([
             `INSERT INTO job_cost_codes (job_no, cost_code_no, description, original_est, approved_cos, revised_est_cost, costs_to_date, remaining_budget, remaining_committed_cost, projected_over_under, pct_variance, last_updated)
@@ -163,21 +175,22 @@ router.post('/import/confirm', (req, res) => {
 
     runBatch(statements);
 
-    // Revalidate schedules for updated jobs — remaining may have changed
+    // Revalidate schedules for unsubmitted jobs — remaining may have changed
     const allSubs = queryAll(`
-      SELECT s.job_no, s.feb_26, s.mar_26, s.apr_26, s.may_26, s.jun_26, s.jul_26,
-             s.aug_26, s.sep_26, s.oct_26, s.nov_26, s.dec_26, j.remaining
+      SELECT s.job_no, j.remaining
       FROM submissions s
       JOIN jobs j ON s.job_no = j.job_no
-      WHERE s.submitted_at IS NULL
-    `);
+      WHERE s.cycle_id = ? AND s.submitted_at IS NULL
+    `, [cycle.id]);
     for (const sub of allSubs) {
-      const sum = [sub.feb_26, sub.mar_26, sub.apr_26, sub.may_26, sub.jun_26, sub.jul_26,
-                   sub.aug_26, sub.sep_26, sub.oct_26, sub.nov_26, sub.dec_26]
-        .reduce((acc, v) => acc + (parseFloat(v) || 0), 0);
+      const entries = queryAll(
+        'SELECT amount FROM billing_entries WHERE cycle_id = ? AND job_no = ?',
+        [cycle.id, sub.job_no]
+      );
+      const sum = entries.reduce((acc, e) => acc + (e.amount || 0), 0);
       const rem = sub.remaining || 0;
       const valid = (Math.abs(rem) <= 0.01) || (rem > 0.01 && sum >= rem - 0.01) ? 1 : 0;
-      run('UPDATE submissions SET schedule_valid = ? WHERE job_no = ?', [valid, sub.job_no]);
+      run('UPDATE submissions SET schedule_valid = ? WHERE job_no = ? AND cycle_id = ?', [valid, sub.job_no, cycle.id]);
     }
 
     res.json({
@@ -194,34 +207,39 @@ router.post('/import/confirm', (req, res) => {
 
 // GET /api/pm/admin/export - export submissions as CSV
 router.get('/export', (req, res) => {
+  const cycle = getActiveCycle();
+  if (!cycle) return res.status(500).json({ error: 'No active billing cycle.' });
+  const months = JSON.parse(cycle.months);
   const includeNotes = req.query.notes === 'true';
 
-  const rows = queryAll(`
-    SELECT j.job_no, s.feb_26, s.mar_26, s.apr_26, s.may_26, s.jun_26, s.jul_26,
-           s.aug_26, s.sep_26, s.oct_26, s.nov_26, s.dec_26, s.ctc_override, s.notes
-    FROM jobs j
-    LEFT JOIN submissions s ON j.job_no = s.job_no
-    ORDER BY j.job_no
-  `);
+  const jobs = queryAll('SELECT job_no FROM jobs ORDER BY job_no');
+  const submissions = queryAll('SELECT job_no, ctc_override, notes FROM submissions WHERE cycle_id = ?', [cycle.id]);
+  const subMap = {};
+  for (const s of submissions) subMap[s.job_no] = s;
 
-  let headers = ['job_no', 'feb_26', 'mar_26', 'apr_26', 'may_26', 'jun_26', 'jul_26',
-    'aug_26', 'sep_26', 'oct_26', 'nov_26', 'dec_26', 'ctc_override'];
-  if (includeNotes) {
-    headers.push('notes');
+  const entries = queryAll('SELECT job_no, month_key, amount FROM billing_entries WHERE cycle_id = ?', [cycle.id]);
+  const entryMap = {};
+  for (const e of entries) {
+    if (!entryMap[e.job_no]) entryMap[e.job_no] = {};
+    entryMap[e.job_no][e.month_key] = e.amount;
   }
 
+  let headers = ['job_no', ...months.map(m => m.key), 'ctc_override'];
+  if (includeNotes) headers.push('notes');
+
   const csvRows = [headers.join(',')];
-  for (const row of rows) {
-    const fmtVal = (v) => v !== null && v !== undefined ? v : 0;
+  const fmtVal = (v) => v !== null && v !== undefined ? v : 0;
+
+  for (const job of jobs) {
+    const sub = subMap[job.job_no] || {};
+    const jobEntries = entryMap[job.job_no] || {};
     const vals = [
-      row.job_no,
-      fmtVal(row.feb_26), fmtVal(row.mar_26), fmtVal(row.apr_26), fmtVal(row.may_26),
-      fmtVal(row.jun_26), fmtVal(row.jul_26), fmtVal(row.aug_26), fmtVal(row.sep_26),
-      fmtVal(row.oct_26), fmtVal(row.nov_26), fmtVal(row.dec_26),
-      fmtVal(row.ctc_override),
+      job.job_no,
+      ...months.map(m => fmtVal(jobEntries[m.key])),
+      fmtVal(sub.ctc_override),
     ];
     if (includeNotes) {
-      vals.push(row.notes ? `"${row.notes.replace(/"/g, '""')}"` : '');
+      vals.push(sub.notes ? `"${sub.notes.replace(/"/g, '""')}"` : '');
     }
     csvRows.push(vals.join(','));
   }
@@ -234,36 +252,77 @@ router.get('/export', (req, res) => {
   res.send(csvRows.join('\n'));
 });
 
-// POST /api/pm/admin/new-cycle - reset submitted_at for all records
+// POST /api/pm/admin/new-cycle - create a new billing cycle
 router.post('/new-cycle', (req, res) => {
-  run('UPDATE submissions SET submitted_at = NULL');
-  res.json({ message: 'New cycle opened. All submissions unlocked for editing.' });
+  const { name, months } = req.body;
+
+  // If no params provided, just unlock the current cycle (backward compat)
+  if (!name && !months) {
+    const cycle = getActiveCycle();
+    if (cycle) {
+      run('UPDATE submissions SET submitted_at = NULL WHERE cycle_id = ?', [cycle.id]);
+    }
+    return res.json({ message: 'All submissions unlocked for editing.' });
+  }
+
+  // Validate
+  if (!name || !months || !Array.isArray(months) || months.length === 0) {
+    return res.status(400).json({ error: 'Cycle name and months array are required.' });
+  }
+
+  const now = new Date().toISOString();
+
+  // Archive current active cycle
+  run('UPDATE billing_cycles SET is_active = 0, archived_at = ? WHERE is_active = 1', [now]);
+
+  // Create new cycle
+  const monthsJson = JSON.stringify(months);
+  run('INSERT INTO billing_cycles (name, months, is_active, created_at) VALUES (?, ?, 1, ?)', [name, monthsJson, now]);
+
+  const newCycle = queryOne('SELECT id FROM billing_cycles WHERE is_active = 1');
+
+  // Create blank submissions and billing entries for all jobs
+  const jobs = queryAll('SELECT job_no, pm FROM jobs WHERE pm IS NOT NULL AND pm != ""');
+  for (const job of jobs) {
+    run('INSERT OR IGNORE INTO submissions (job_no, cycle_id, pm, last_updated) VALUES (?, ?, ?, ?)', [job.job_no, newCycle.id, job.pm, now]);
+    for (const m of months) {
+      run('INSERT OR IGNORE INTO billing_entries (cycle_id, job_no, month_key, amount) VALUES (?, ?, ?, 0)', [newCycle.id, job.job_no, m.key]);
+    }
+  }
+
+  res.json({ message: `New cycle "${name}" created with ${months.length} months. ${jobs.length} jobs initialized.` });
 });
 
 // POST /api/pm/admin/unlock/:jobNo - unlock a single submitted job
 router.post('/unlock/:jobNo', (req, res) => {
   const { jobNo } = req.params;
-  const submission = queryOne('SELECT submitted_at FROM submissions WHERE job_no = ?', [jobNo]);
+  const cycle = getActiveCycle();
+  if (!cycle) return res.status(500).json({ error: 'No active billing cycle.' });
+
+  const submission = queryOne('SELECT submitted_at FROM submissions WHERE job_no = ? AND cycle_id = ?', [jobNo, cycle.id]);
   if (!submission) {
     return res.status(404).json({ error: 'Submission not found.' });
   }
   if (!submission.submitted_at) {
     return res.status(400).json({ error: 'This job is not submitted.' });
   }
-  run('UPDATE submissions SET submitted_at = NULL WHERE job_no = ?', [jobNo]);
+  run('UPDATE submissions SET submitted_at = NULL WHERE job_no = ? AND cycle_id = ?', [jobNo, cycle.id]);
   res.json({ message: `Job ${jobNo} unlocked for editing.` });
 });
 
 // GET /api/pm/admin/incomplete - jobs where PM has not submitted or schedule_valid = false
 router.get('/incomplete', (req, res) => {
+  const cycle = getActiveCycle();
+  if (!cycle) return res.json([]);
+
   const jobs = queryAll(`
     SELECT j.job_no, j.job_name, j.pm, s.schedule_valid, s.submitted_at
     FROM jobs j
-    LEFT JOIN submissions s ON j.job_no = s.job_no
+    LEFT JOIN submissions s ON j.job_no = s.job_no AND s.cycle_id = ?
     WHERE j.pm IS NOT NULL AND j.pm != 'TBD' AND j.pm != ''
       AND (s.submitted_at IS NULL OR s.schedule_valid = 0 OR s.schedule_valid IS NULL)
     ORDER BY j.pm, j.job_no
-  `);
+  `, [cycle.id]);
   res.json(jobs);
 });
 

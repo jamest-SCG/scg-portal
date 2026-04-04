@@ -49,11 +49,11 @@ async function start() {
   // Trust Nginx proxy (needed for rate limiting behind reverse proxy)
   app.set('trust proxy', 1);
 
-  // Rate limiting for login endpoints
+  // Rate limiting for auth endpoints
   const loginLimiter = rateLimit({
-    windowMs: 60 * 1000, // 1 minute
-    max: 10,
-    message: { error: 'Too many login attempts. Please try again in a minute.' },
+    windowMs: 2 * 60 * 1000, // 2 minutes
+    max: 5,
+    message: { error: 'Too many attempts. Please try again in a couple of minutes.' },
   });
 
   app.use(cors());

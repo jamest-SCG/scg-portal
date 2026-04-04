@@ -53,11 +53,12 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-navy to-navy-light flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <span className="text-navy font-bold text-xl">SCG</span>
+          <div className="flex justify-center mb-4">
+            <div className="bg-white rounded-xl px-6 py-3 shadow-lg">
+              <img src="/logo.png" alt="Sixth City Glazing" className="h-10 w-auto" />
+            </div>
           </div>
           <h1 className="text-2xl font-bold text-white">Employee Portal</h1>
-          <p className="text-blue-200 text-sm mt-1">Sixth City Glazing</p>
         </div>
 
         <div className="card p-6">

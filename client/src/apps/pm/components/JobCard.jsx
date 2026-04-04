@@ -34,7 +34,7 @@ export default function JobCard({ job, onUpdate, onSubmit }) {
   const [formData, setFormData] = useState({});
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
-  const [showCostCodes, setShowCostCodes] = useState(false);
+  const [showCostCodes, setShowCostCodes] = useState(true);
   const debounceRef = useRef(null);
   const isLocked = !!job.submitted_at;
 
@@ -164,27 +164,34 @@ export default function JobCard({ job, onUpdate, onSubmit }) {
       {/* Expanded Content */}
       {expanded && (
         <div className="border-t border-gray-100 px-4 py-4 space-y-4">
-          {/* Job Info Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <InfoCell label="Contract" value={fmt(job.contract)} />
-            <InfoCell label="Billed to Date" value={fmt(job.billed)} />
-            <InfoCell label="Remaining to Bill" value={fmt(remaining)} />
-            <InfoCell label="% Complete" value={fmtPct(job.pct_complete)} />
-          </div>
-
-          {/* Cost to Complete Summary */}
-          {job.has_cost_codes > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <InfoCell label="Original Est" value={fmt(job.est_cost)} />
-              <InfoCell label="PM Revised Est" value={effectiveEst ? fmt(effectiveEst) : '-'} />
-              <InfoCell label="Actual to Date" value={fmt(job.cost_to_date)} />
-              <InfoCell
-                label="Est. Cost to Complete"
-                value={ctcCalculated != null ? fmt(ctcCalculated) : '-'}
-                highlight={ctcCalculated != null && ctcCalculated < 0}
-              />
+          {/* Job Info section */}
+          <div className="rounded-lg border border-gray-200 overflow-hidden">
+            <div className="bg-navy px-3 py-2">
+              <h4 className="text-xs font-semibold text-white uppercase tracking-wide">Job Summary</h4>
             </div>
-          )}
+            <div className="p-3 space-y-3 bg-white">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <InfoCell label="Contract" value={fmt(job.contract)} />
+                <InfoCell label="Billed to Date" value={fmt(job.billed)} />
+                <InfoCell label="Remaining to Bill" value={fmt(remaining)} />
+                <InfoCell label="% Complete" value={fmtPct(job.pct_complete)} />
+              </div>
+
+              {/* Cost to Complete Summary */}
+              {job.has_cost_codes > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <InfoCell label="Original Est" value={fmt(job.est_cost)} />
+                  <InfoCell label="PM Revised Est" value={effectiveEst ? fmt(effectiveEst) : '-'} />
+                  <InfoCell label="Actual to Date" value={fmt(job.cost_to_date)} />
+                  <InfoCell
+                    label="Est. Cost to Complete"
+                    value={ctcCalculated != null ? fmt(ctcCalculated) : '-'}
+                    highlight={ctcCalculated != null && ctcCalculated < 0}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
 
           {isOverBudget && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
@@ -192,106 +199,113 @@ export default function JobCard({ job, onUpdate, onSubmit }) {
             </div>
           )}
 
-          {/* Cost Code Detail (collapsible) */}
-          <div>
+          {/* Cost Codes section */}
+          <div className="rounded-lg border border-gray-200 overflow-hidden">
             <button
               onClick={() => setShowCostCodes(!showCostCodes)}
-              className="flex items-center gap-2 text-sm font-medium text-navy hover:text-navy-dark transition-colors"
+              className="w-full bg-navy px-3 py-2 flex items-center gap-2 hover:bg-navy-dark transition-colors"
             >
               <svg
-                className={`w-3 h-3 transition-transform ${showCostCodes ? 'rotate-90' : ''}`}
+                className={`w-3 h-3 text-white transition-transform ${showCostCodes ? 'rotate-90' : ''}`}
                 fill="none" stroke="currentColor" viewBox="0 0 24 24"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
-              {showCostCodes ? 'Hide Cost Codes' : 'Show Cost Codes'}
+              <h4 className="text-xs font-semibold text-white uppercase tracking-wide">Cost Code Breakdown</h4>
             </button>
             {showCostCodes && (
-              <div className="mt-2">
+              <div className="p-3 bg-white">
                 <CostCodeTable jobNo={job.job_no} isLocked={isLocked} onCTCChange={handleCTCChange} />
               </div>
             )}
           </div>
 
-          {/* Billing Schedule Validation */}
-          <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
-            <span className="text-sm font-medium text-gray-600">Billing Schedule</span>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-mono">{fmt(monthSum)} / {fmt(remaining)}</span>
-              {isValid ? (
-                <span className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </span>
-              ) : (
-                <span className="text-xs px-2 py-1 rounded font-medium bg-yellow-100 text-yellow-700">
-                  {fmt(gap)} gap remaining
-                </span>
-              )}
+          {/* Billing Schedule section */}
+          <div className="rounded-lg border border-gray-200 overflow-hidden">
+            <div className="bg-navy px-3 py-2 flex items-center justify-between">
+              <h4 className="text-xs font-semibold text-white uppercase tracking-wide">Billing Schedule</h4>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-mono text-white">{fmt(monthSum)} / {fmt(remaining)}</span>
+                {isValid ? (
+                  <span className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </span>
+                ) : (
+                  <span className="text-xs px-2 py-1 rounded font-medium bg-yellow-300 text-yellow-900">
+                    {fmt(gap)} gap remaining
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="p-3 bg-white">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                {MONTHS.map(m => (
+                  <div key={m.key}>
+                    <label className="block text-xs text-gray-500 mb-1">{m.label}</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData[m.key] || ''}
+                      onChange={(e) => handleChange(m.key, e.target.value)}
+                      onWheel={(e) => e.target.blur()}
+                      disabled={isLocked}
+                      placeholder="0"
+                      className="input-field text-sm"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* Monthly Billing Inputs */}
-          <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Monthly Billing Projections</h4>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-              {MONTHS.map(m => (
-                <div key={m.key}>
-                  <label className="block text-xs text-gray-500 mb-1">{m.label}</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData[m.key] || ''}
-                    onChange={(e) => handleChange(m.key, e.target.value)}
-                    onWheel={(e) => e.target.blur()}
-                    disabled={isLocked}
-                    placeholder="0"
-                    className="input-field text-sm"
-                  />
-                </div>
-              ))}
+          {/* CTC Override & Notes section */}
+          <div className="rounded-lg border border-gray-200 overflow-hidden">
+            <div className="bg-navy px-3 py-2">
+              <h4 className="text-xs font-semibold text-white uppercase tracking-wide">Overrides & Notes</h4>
             </div>
-          </div>
+            <div className="p-3 bg-white space-y-3">
+              {/* CTC Override */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Cost-to-Complete Override
+                  <span className="text-xs font-normal text-gray-400 ml-2">Leave blank for formula</span>
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.ctc_override}
+                  onChange={(e) => handleChange('ctc_override', e.target.value)}
+                  onWheel={(e) => e.target.blur()}
+                  disabled={isLocked}
+                  placeholder="Leave blank for formula"
+                  className={`input-field text-sm max-w-xs ${isOverBudget ? 'border-yellow-400 bg-yellow-50' : ''}`}
+                />
+                {isOverBudget && (
+                  <p className="text-xs text-yellow-600 mt-1">Job is over budget — please enter your estimated remaining cost</p>
+                )}
+              </div>
 
-          {/* CTC Override */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Cost-to-Complete Override
-              <span className="text-xs font-normal text-gray-400 ml-2">Leave blank for formula</span>
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.ctc_override}
-              onChange={(e) => handleChange('ctc_override', e.target.value)}
-              onWheel={(e) => e.target.blur()}
-              disabled={isLocked}
-              placeholder="Leave blank for formula"
-              className={`input-field text-sm max-w-xs ${isOverBudget ? 'border-yellow-400 bg-yellow-50' : ''}`}
-            />
-            {isOverBudget && (
-              <p className="text-xs text-yellow-600 mt-1">Job is over budget — please enter your estimated remaining cost</p>
-            )}
-          </div>
-
-          {/* Notes */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Notes <span className="text-xs font-normal text-gray-400">(optional, 500 char max)</span>
-            </label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => handleChange('notes', e.target.value.slice(0, 500))}
-              disabled={isLocked}
-              placeholder="Any notes about this job..."
-              maxLength={500}
-              rows={2}
-              className="input-field text-sm resize-none"
-            />
-            <p className="text-xs text-gray-400 text-right mt-1">{(formData.notes || '').length}/500</p>
+              {/* Notes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notes <span className="text-xs font-normal text-gray-400">(optional, 500 char max)</span>
+                </label>
+                <textarea
+                  value={formData.notes}
+                  onChange={(e) => handleChange('notes', e.target.value.slice(0, 500))}
+                  disabled={isLocked}
+                  placeholder="Any notes about this job..."
+                  maxLength={500}
+                  rows={2}
+                  className="input-field text-sm resize-none"
+                />
+                <p className="text-xs text-gray-400 text-right mt-1">{(formData.notes || '').length}/500</p>
+              </div>
+            </div>
           </div>
 
           {/* Save Status */}

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 373 45" fill="none">
+  <!-- Grid icon (3 rows x 2 cols) -->
+  <rect x="0" y="3" width="11" height="11" rx="1.5" fill="#2E7D32"/>
+  <rect x="14" y="3" width="11" height="11" rx="1.5" fill="#2E7D32"/>
+  <rect x="0" y="17" width="11" height="11" rx="1.5" fill="#2E7D32"/>
+  <rect x="14" y="17" width="11" height="11" rx="1.5" fill="#2E7D32"/>
+  <rect x="0" y="31" width="11" height="11" rx="1.5" fill="#2E7D32"/>
+  <rect x="14" y="31" width="11" height="11" rx="1.5" fill="#2E7D32"/>
+  <!-- Text -->
+  <text x="36" y="36" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="34" fill="#2E7D32">Sixth City Glazing</text>
+</svg>

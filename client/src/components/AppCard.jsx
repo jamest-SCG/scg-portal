@@ -38,8 +38,8 @@ export default function AppCard({ app }) {
       </div>
       <h3 className="text-lg font-semibold text-gray-900 mb-1">{app.name}</h3>
       <p className="text-sm text-gray-500 mb-4">{app.description}</p>
-      <span className="text-sm font-medium text-navy group-hover:underline">
-        Open &rarr;
+      <span className="text-sm font-medium text-navy group-hover:underline inline-flex items-center gap-1">
+        Open <span className="inline-block transition-transform group-hover:translate-x-1">&rarr;</span>
       </span>
     </Link>
   );

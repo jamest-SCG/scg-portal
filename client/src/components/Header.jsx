@@ -20,8 +20,8 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
-            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-              <span className="text-navy font-bold text-sm">SCG</span>
+            <div className="bg-white rounded-lg px-2 py-1 flex items-center">
+              <img src="/logo.png" alt="Sixth City Glazing" className="h-6 w-auto" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -33,12 +33,12 @@ export default function Header() {
                   </>
                 )}
               </div>
-              <p className="text-xs text-blue-200 hidden sm:block">Sixth City Glazing</p>
             </div>
           </Link>
         </div>
         {user && (
           <div className="flex items-center gap-3">
+            <div className="hidden sm:block h-8 w-px bg-white/20"></div>
             <div className="text-right hidden sm:block">
               <p className="text-sm font-medium">{user.name}</p>
               <p className="text-xs text-blue-200 capitalize">

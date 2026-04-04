@@ -97,6 +97,37 @@ router.post('/users', requireAdmin, (req, res) => {
   res.json({ message: 'User created successfully.', userId: newUser ? newUser.id : null });
 });
 
+// PUT /api/portal/users/:id - admin updates a user's name and/or initials
+router.put('/users/:id', requireAdmin, (req, res) => {
+  const userId = parseInt(req.params.id);
+  const { name, initials } = req.body;
+
+  if ((!name || !name.trim()) && (!initials || !initials.trim())) {
+    return res.status(400).json({ error: 'Name or initials required.' });
+  }
+
+  const user = queryOne('SELECT id, role FROM users WHERE id = ?', [userId]);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found.' });
+  }
+  if (user.role === 'admin') {
+    return res.status(400).json({ error: 'Cannot edit the admin user.' });
+  }
+
+  if (initials && initials.trim()) {
+    const existing = queryOne('SELECT id FROM users WHERE initials = ? AND id != ?', [initials.trim().toUpperCase(), userId]);
+    if (existing) {
+      return res.status(400).json({ error: 'Another user already has these initials.' });
+    }
+    run('UPDATE users SET initials = ? WHERE id = ?', [initials.trim().toUpperCase(), userId]);
+  }
+  if (name && name.trim()) {
+    run('UPDATE users SET name = ? WHERE id = ?', [name.trim(), userId]);
+  }
+
+  res.json({ message: 'User updated.' });
+});
+
 // DELETE /api/portal/users/:id - admin deletes a user
 router.delete('/users/:id', requireAdmin, (req, res) => {
   const userId = parseInt(req.params.id);

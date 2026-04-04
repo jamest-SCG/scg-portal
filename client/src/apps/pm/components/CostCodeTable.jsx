@@ -78,30 +78,31 @@ export default function CostCodeTable({ jobNo, isLocked, onCTCChange }) {
   }, 0);
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-xs">
-        <thead className="bg-gray-50">
+    <div className="overflow-x-auto rounded-lg border border-gray-200">
+      <table className="w-full text-sm">
+        <thead className="bg-navy text-white">
           <tr>
-            <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">Code</th>
-            <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">Description</th>
-            <th className="px-2 py-2 text-right font-medium text-gray-500 uppercase">Revised Est</th>
-            <th className="px-2 py-2 text-right font-medium text-gray-500 uppercase">Costs to Date</th>
-            <th className="px-2 py-2 text-right font-medium text-gray-500 uppercase">Remaining</th>
-            <th className="px-2 py-2 text-right font-medium text-amber-600 uppercase">PM Est</th>
-            <th className="px-2 py-2 text-right font-medium text-gray-500 uppercase">Over/Under</th>
+            <th className="px-3 py-2.5 text-left font-semibold text-xs uppercase tracking-wide">Code</th>
+            <th className="px-3 py-2.5 text-left font-semibold text-xs uppercase tracking-wide">Description</th>
+            <th className="px-3 py-2.5 text-right font-semibold text-xs uppercase tracking-wide">Revised Est</th>
+            <th className="px-3 py-2.5 text-right font-semibold text-xs uppercase tracking-wide">Costs to Date</th>
+            <th className="px-3 py-2.5 text-right font-semibold text-xs uppercase tracking-wide">Remaining</th>
+            <th className="px-3 py-2.5 text-right font-semibold text-xs uppercase tracking-wide text-amber-300">PM Est</th>
+            <th className="px-3 py-2.5 text-right font-semibold text-xs uppercase tracking-wide">Over/Under</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100">
-          {costCodes.map(cc => {
+        <tbody>
+          {costCodes.map((cc, idx) => {
             const overBudget = cc.costs_to_date > (cc.revised_est_cost || 0) && cc.revised_est_cost > 0;
+            const stripe = idx % 2 === 0 ? 'bg-white' : 'bg-gray-50';
             return (
-              <tr key={cc.cost_code_no} className={overBudget ? 'bg-red-50' : 'hover:bg-gray-50'}>
-                <td className="px-2 py-1.5 font-mono">{cc.cost_code_no}</td>
-                <td className="px-2 py-1.5 truncate max-w-[160px]">{cc.description}</td>
-                <td className="px-2 py-1.5 text-right font-mono">{fmt(cc.revised_est_cost)}</td>
-                <td className="px-2 py-1.5 text-right font-mono">{fmt(cc.costs_to_date)}</td>
-                <td className="px-2 py-1.5 text-right font-mono">{fmt(cc.remaining_budget)}</td>
-                <td className="px-2 py-1.5 text-right">
+              <tr key={cc.cost_code_no} className={overBudget ? 'bg-red-50' : `${stripe} hover:bg-blue-50`}>
+                <td className="px-3 py-2 font-mono text-gray-700">{cc.cost_code_no}</td>
+                <td className="px-3 py-2 truncate max-w-[200px] text-gray-800">{cc.description}</td>
+                <td className="px-3 py-2 text-right font-mono text-gray-700">{fmt(cc.revised_est_cost)}</td>
+                <td className="px-3 py-2 text-right font-mono text-gray-700">{fmt(cc.costs_to_date)}</td>
+                <td className="px-3 py-2 text-right font-mono text-gray-700">{fmt(cc.remaining_budget)}</td>
+                <td className="px-3 py-2 text-right">
                   {isLocked ? (
                     <span className="font-mono">{cc.pm_revised_est != null ? fmt(cc.pm_revised_est) : '-'}</span>
                   ) : (
@@ -112,14 +113,14 @@ export default function CostCodeTable({ jobNo, isLocked, onCTCChange }) {
                       onChange={(e) => handleEstChange(cc.cost_code_no, e.target.value)}
                       onWheel={(e) => e.target.blur()}
                       placeholder={cc.revised_est_cost ? String(cc.revised_est_cost) : '0'}
-                      className="w-24 px-1.5 py-0.5 border border-gray-200 rounded text-right text-xs font-mono focus:ring-1 focus:ring-amber-400 focus:border-transparent"
+                      className="w-28 px-2 py-1 border border-gray-300 rounded text-right text-sm font-mono focus:ring-2 focus:ring-sky-400 focus:border-transparent"
                     />
                   )}
                   {savingCode === cc.cost_code_no && (
-                    <span className="text-[10px] text-green-500 ml-1">saving...</span>
+                    <span className="text-xs text-green-500 ml-1">saving...</span>
                   )}
                 </td>
-                <td className={`px-2 py-1.5 text-right font-mono ${
+                <td className={`px-3 py-2 text-right font-mono font-medium ${
                   (cc.projected_over_under || 0) < 0 ? 'text-red-600' : 'text-green-600'
                 }`}>
                   {fmt(cc.projected_over_under)}
@@ -128,14 +129,14 @@ export default function CostCodeTable({ jobNo, isLocked, onCTCChange }) {
             );
           })}
         </tbody>
-        <tfoot className="bg-gray-50 font-medium">
+        <tfoot className="bg-navy/10 font-semibold border-t-2 border-navy/20">
           <tr>
-            <td className="px-2 py-2" colSpan={2}>Totals</td>
-            <td className="px-2 py-2 text-right font-mono">{fmt(totalRevisedEst)}</td>
-            <td className="px-2 py-2 text-right font-mono">{fmt(totalCostsToDate)}</td>
-            <td className="px-2 py-2 text-right font-mono">{fmt(totalRevisedEst - totalCostsToDate)}</td>
-            <td className="px-2 py-2 text-right font-mono text-amber-600">{fmt(totalPMEst)}</td>
-            <td className="px-2 py-2 text-right font-mono">{fmt(totalRevisedEst - totalCostsToDate)}</td>
+            <td className="px-3 py-2.5 text-gray-800" colSpan={2}>Totals</td>
+            <td className="px-3 py-2.5 text-right font-mono text-gray-800">{fmt(totalRevisedEst)}</td>
+            <td className="px-3 py-2.5 text-right font-mono text-gray-800">{fmt(totalCostsToDate)}</td>
+            <td className="px-3 py-2.5 text-right font-mono text-gray-800">{fmt(totalRevisedEst - totalCostsToDate)}</td>
+            <td className="px-3 py-2.5 text-right font-mono text-amber-700">{fmt(totalPMEst)}</td>
+            <td className="px-3 py-2.5 text-right font-mono text-gray-800">{fmt(totalRevisedEst - totalCostsToDate)}</td>
           </tr>
         </tfoot>
       </table>

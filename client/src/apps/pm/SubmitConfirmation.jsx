@@ -7,7 +7,7 @@ export default function SubmitConfirmation() {
 
   if (!count) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 flex items-center justify-center p-4">
         <div className="card p-8 text-center max-w-md">
           <p className="text-gray-500">No submission data found.</p>
           <button onClick={() => navigate('/pm')} className="btn-primary mt-4">
@@ -21,7 +21,7 @@ export default function SubmitConfirmation() {
   const formattedDate = new Date(submitted_at).toLocaleString();
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 flex items-center justify-center p-4">
       <div className="card p-8 max-w-lg w-full text-center">
         <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

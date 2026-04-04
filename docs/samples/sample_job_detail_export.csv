@@ -1,0 +1,6 @@
+Job No.,Job Name / Description,Div.,PM,Revised Contract ($),Rev Est Cost ($),Cost to Date ($),Billed to Date ($),Ret. %,Feb-26 Billings,Mar-26 Billings,Apr-26 Billings,May-26 Billings,Jun-26 Billings,Jul-26 Billings,Aug-26 Billings,Sep-26 Billings,Oct-26 Billings,Nov-26 Billings,Dec-26 Billings,PM Est Cost-to-Cmplt Override ($)
+99-01,Sample Office Tower,CBUS,R.S.,500000,350000,280000,400000,0.1,50000,30000,20000,,,,,,,,,
+99-02,Sample School Renovation,CLE,C.G.,250000,175000,120000,180000,0.1,,35000,35000,,,,,,,,,
+99-03,Sample Hospital Wing,CBUS,D.S.,750000,500000,600000,700000,0.1,25000,25000,,,,,,,,,,195000
+99-04,Sample Retail Storefront,CLE,A.E.,80000,55000,42000,60000,0.1,10000,10000,,,,,,,,,,
+99-05,Sample Apartment Complex,CBUS,S.M.,300000,200000,150000,250000,0.1,,25000,25000,,,,,,,,,

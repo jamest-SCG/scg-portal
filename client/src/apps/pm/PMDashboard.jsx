@@ -95,7 +95,7 @@ export default function PMDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30">
         <Header />
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-navy"></div>
@@ -105,7 +105,7 @@ export default function PMDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30">
       <Header />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
@@ -127,16 +127,16 @@ export default function PMDashboard() {
 
         {/* Summary Strip */}
         <div className="grid grid-cols-3 gap-3">
-          <div className="card px-4 py-3 text-center">
+          <div className="card px-4 py-3 text-center border-t-4 border-t-navy">
             <p className="text-2xl font-bold text-navy">{jobs.length}</p>
             <p className="text-xs text-gray-500">Total Jobs</p>
           </div>
-          <div className="card px-4 py-3 text-center">
-            <p className="text-2xl font-bold text-navy">{fmt(totalRemaining)}</p>
+          <div className="card px-4 py-3 text-center border-t-4 border-t-amber-500">
+            <p className="text-2xl font-bold text-amber-600">{fmt(totalRemaining)}</p>
             <p className="text-xs text-gray-500">Remaining to Bill</p>
           </div>
-          <div className="card px-4 py-3 text-center">
-            <p className="text-2xl font-bold text-navy">{submittedCount}/{jobs.length}</p>
+          <div className="card px-4 py-3 text-center border-t-4 border-t-green-500">
+            <p className="text-2xl font-bold text-green-600">{submittedCount}/{jobs.length}</p>
             <p className="text-xs text-gray-500">Submitted</p>
           </div>
         </div>

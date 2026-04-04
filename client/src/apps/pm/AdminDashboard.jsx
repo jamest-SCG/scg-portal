@@ -112,7 +112,7 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30">
         <Header />
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-navy"></div>
@@ -125,7 +125,7 @@ export default function AdminDashboard() {
   const totalSubmitted = jobs.filter(j => j.submitted_at).length;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30">
       <Header />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6">

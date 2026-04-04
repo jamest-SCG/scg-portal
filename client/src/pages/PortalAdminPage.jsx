@@ -22,6 +22,11 @@ export default function PortalAdminPage() {
   const [forceReset, setForceReset] = useState(true);
   const [pinMsg, setPinMsg] = useState('');
 
+  // Edit user
+  const [editingUserId, setEditingUserId] = useState(null);
+  const [editingField, setEditingField] = useState(null); // 'name' or 'initials'
+  const [editValue, setEditValue] = useState('');
+
   // Backups
   const [backups, setBackups] = useState([]);
   const [backupMsg, setBackupMsg] = useState('');
@@ -100,6 +105,40 @@ export default function PortalAdminPage() {
     }
   };
 
+  // Save edited field (name or initials)
+  const handleSaveEdit = async (userId) => {
+    if (!editValue.trim()) return;
+    try {
+      const body = editingField === 'initials'
+        ? { initials: editValue.trim() }
+        : { name: editValue.trim() };
+      const res = await authFetch(`/api/portal/users/${userId}`, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setEditingUserId(null);
+      setEditingField(null);
+      setEditValue('');
+      fetchData();
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  };
+
+  const startEditing = (userId, field, currentValue) => {
+    setEditingUserId(userId);
+    setEditingField(field);
+    setEditValue(currentValue);
+  };
+
+  const cancelEditing = () => {
+    setEditingUserId(null);
+    setEditingField(null);
+    setEditValue('');
+  };
+
   // PIN reset
   const handlePinReset = async () => {
     if (!selectedUserId || resetPin.length !== 4) return;
@@ -120,7 +159,7 @@ export default function PortalAdminPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30">
         <Header />
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-navy"></div>
@@ -132,7 +171,7 @@ export default function PortalAdminPage() {
   const nonAdminUsers = users.filter(u => u.role !== 'admin');
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30">
       <Header />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
@@ -164,8 +203,60 @@ export default function PortalAdminPage() {
               <tbody className="divide-y divide-gray-200">
                 {nonAdminUsers.map(user => (
                   <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm font-medium">{user.name}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{user.initials}</td>
+                    <td className="px-4 py-3 text-sm font-medium">
+                      {editingUserId === user.id && editingField === 'name' ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveEdit(user.id);
+                              if (e.key === 'Escape') cancelEditing();
+                            }}
+                            autoFocus
+                            className="input-field text-sm py-1 px-2 w-32"
+                          />
+                          <button onClick={() => handleSaveEdit(user.id)} className="text-green-600 hover:text-green-800 text-xs font-medium">Save</button>
+                          <button onClick={cancelEditing} className="text-gray-400 hover:text-gray-600 text-xs">Cancel</button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => startEditing(user.id, 'name', user.name)}
+                          className="hover:text-navy hover:underline text-left"
+                          title="Click to edit name"
+                        >
+                          {user.name}
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-500">
+                      {editingUserId === user.id && editingField === 'initials' ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveEdit(user.id);
+                              if (e.key === 'Escape') cancelEditing();
+                            }}
+                            autoFocus
+                            className="input-field text-sm py-1 px-2 w-20"
+                          />
+                          <button onClick={() => handleSaveEdit(user.id)} className="text-green-600 hover:text-green-800 text-xs font-medium">Save</button>
+                          <button onClick={cancelEditing} className="text-gray-400 hover:text-gray-600 text-xs">Cancel</button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => startEditing(user.id, 'initials', user.initials)}
+                          className="hover:text-navy hover:underline text-left"
+                          title="Click to edit initials"
+                        >
+                          {user.initials}
+                        </button>
+                      )}
+                    </td>
                     {allApps.map(app => (
                       <td key={app.id} className="px-4 py-3 text-center">
                         <input

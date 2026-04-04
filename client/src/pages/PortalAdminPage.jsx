@@ -354,7 +354,7 @@ export default function PortalAdminPage() {
             </button>
           </div>
           <p className="text-sm text-gray-600 mb-4">
-            Automatic backups run daily at 2:00 AM. Backups older than 30 days are auto-deleted.
+            Automatic backups run daily at 2:00 AM EST. Backups older than 2 years are auto-deleted.
           </p>
 
           {backupMsg && (

@@ -3,6 +3,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useCycle } from '../context/CycleContext';
 import CostCodeTable from './CostCodeTable';
 import ConfirmModal from '../../../components/ConfirmModal';
+import CurrencyInput from '../../../components/CurrencyInput';
 
 function fmt(val) {
   if (val === null || val === undefined || val === '') return '-';
@@ -265,13 +266,9 @@ export default function JobCard({ job, onUpdate, onSubmit }) {
                 {MONTHS.map(m => (
                   <div key={m.key}>
                     <label className="block text-xs text-gray-500 mb-1">{m.label}</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
+                    <CurrencyInput
                       value={formData[m.key] || ''}
                       onChange={(e) => handleChange(m.key, e.target.value)}
-                      onWheel={(e) => e.target.blur()}
                       disabled={isLocked}
                       placeholder="0"
                       className="input-field text-sm"

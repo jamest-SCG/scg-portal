@@ -120,8 +120,9 @@ router.post('/submit/:jobNo', (req, res) => {
   });
 });
 
-// POST /api/pm/submissions/submit-all - submit all jobs for the logged-in PM
+// POST /api/pm/submissions/submit-all - submit all jobs for the logged-in PM (or all if admin)
 router.post('/submit-all', (req, res) => {
+  const isAdmin = req.user.role === 'admin';
   const pm = req.user.initials;
   const cycle = getActiveCycle();
   if (!cycle) return res.status(500).json({ error: 'No active billing cycle.' });
@@ -129,21 +130,20 @@ router.post('/submit-all', (req, res) => {
   const now = new Date().toISOString();
 
   // Auto-create submission records for jobs with $0 remaining that have none
-  const missingSubmissions = queryAll(`
-    SELECT j.job_no, j.pm FROM jobs j
-    LEFT JOIN submissions s ON j.job_no = s.job_no AND s.cycle_id = ?
-    WHERE j.pm = ? AND s.job_no IS NULL AND (j.remaining IS NULL OR j.remaining <= 0.01)
-  `, [cycle.id, pm]);
+  const missingQuery = isAdmin
+    ? 'SELECT j.job_no, j.pm FROM jobs j LEFT JOIN submissions s ON j.job_no = s.job_no AND s.cycle_id = ? WHERE s.job_no IS NULL AND (j.remaining IS NULL OR j.remaining <= 0.01)'
+    : 'SELECT j.job_no, j.pm FROM jobs j LEFT JOIN submissions s ON j.job_no = s.job_no AND s.cycle_id = ? WHERE j.pm = ? AND s.job_no IS NULL AND (j.remaining IS NULL OR j.remaining <= 0.01)';
+  const missingParams = isAdmin ? [cycle.id] : [cycle.id, pm];
+  const missingSubmissions = queryAll(missingQuery, missingParams);
   for (const j of missingSubmissions) {
     createBlankSubmission(cycle.id, j.job_no, j.pm || pm, months, now);
   }
 
-  const jobs = queryAll(`
-    SELECT j.job_no, s.schedule_valid, s.submitted_at
-    FROM jobs j
-    LEFT JOIN submissions s ON j.job_no = s.job_no AND s.cycle_id = ?
-    WHERE j.pm = ?
-  `, [cycle.id, pm]);
+  const jobsQuery = isAdmin
+    ? 'SELECT j.job_no, s.schedule_valid, s.submitted_at FROM jobs j LEFT JOIN submissions s ON j.job_no = s.job_no AND s.cycle_id = ? WHERE j.pm IS NOT NULL AND j.pm != ?'
+    : 'SELECT j.job_no, s.schedule_valid, s.submitted_at FROM jobs j LEFT JOIN submissions s ON j.job_no = s.job_no AND s.cycle_id = ? WHERE j.pm = ?';
+  const jobsParams = isAdmin ? [cycle.id, ''] : [cycle.id, pm];
+  const jobs = queryAll(jobsQuery, jobsParams);
 
   const notValid = jobs.filter(j => !j.schedule_valid);
   if (notValid.length > 0) {

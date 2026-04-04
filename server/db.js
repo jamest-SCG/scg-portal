@@ -87,6 +87,17 @@ async function getDb() {
     migrateToBillingCycles();
   }
 
+  // Seed a default billing cycle if none exists (fresh database)
+  const cycleCount = queryAllRaw('SELECT COUNT(*) as c FROM billing_cycles');
+  if (cycleCount[0].c === 0) {
+    const MONTH_KEYS = ['feb_26','mar_26','apr_26','may_26','jun_26','jul_26','aug_26','sep_26','oct_26','nov_26','dec_26'];
+    const MONTH_LABELS = ['Feb 26','Mar 26','Apr 26','May 26','Jun 26','Jul 26','Aug 26','Sep 26','Oct 26','Nov 26','Dec 26'];
+    const monthsJson = JSON.stringify(MONTH_KEYS.map((key, i) => ({ key, label: MONTH_LABELS[i] })));
+    db.run('INSERT INTO billing_cycles (name, months, is_active, created_at) VALUES (?, ?, 1, ?)',
+      ['FY2026 Feb-Dec', monthsJson, new Date().toISOString()]);
+    console.log('Created default billing cycle: FY2026 Feb-Dec');
+  }
+
   save();
   return db;
 }

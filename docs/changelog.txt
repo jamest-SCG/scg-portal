@@ -1,4 +1,65 @@
-SCG Portal — Changelog for 2026-04-04
+SCG Portal — Changelog
+======================
+
+## 2026-04-04 (Session 2) — Dynamic Cycles, Master-Detail, QoL
+
+### Dynamic Billing Cycles Refactor
+
+- Replaced hardcoded feb_26...dec_26 columns with normalized schema:
+  - billing_cycles table (id, name, months JSON, is_active)
+  - billing_entries table (cycle_id, job_no, month_key, amount)
+  - submissions table rebuilt without month columns, adds cycle_id
+- Automatic migration on startup: detects old month columns, creates seed
+  cycle "FY2026 Feb-Dec", copies data to billing_entries
+- New API: GET /api/pm/cycles/active returns cycle definition
+- New CycleContext provides months to all frontend components dynamically
+- Admin can create new billing cycles without code changes
+- Revenue charts support historical cycle selector dropdown
+- Fresh databases auto-seed a default billing cycle
+
+### Master-Detail PM Layout
+
+- Replaced expand/collapse job cards with master-detail split layout
+- Left sidebar: scrollable job list with status badges, independent scroll
+- Right detail panel: full job view with sticky header (job info + submit button)
+- Draggable resize handle between panels (200px-500px range)
+- Revenue Charts accessible from bottom of sidebar
+- Mobile: sidebar goes full-width, detail has back button
+- Auto-scrolls detail panel to top when switching jobs
+
+### Input & Table Improvements
+
+- CurrencyInput component: shows live comma formatting while typing
+  (type "150000" → see "150,000" in real time, commas stripped on save)
+- Cost code table columns sortable by clicking headers (▲/▼ indicators)
+- Fixed column header flash when sorting (was caused by component
+  defined inside render function, moved to inline elements)
+- Fixed cost code table flash on PM Est edit (deferred parent CTC update
+  via useRef + setTimeout)
+
+### Save Reliability
+
+- Billing schedule values now persist when switching between jobs
+  (form data merged into parent jobs state on save, not just schedule_valid)
+- Pending saves flush immediately when switching jobs or unmounting
+- Fire-and-forget flush includes billing data in parent state update
+
+### Admin Fixes
+
+- Submit All works for admin users (bypasses PM filter)
+- Replaced browser confirm() with in-app modal for unlock job and new cycle
+- Chart endpoint accepts optional cycle_id query param for historical data
+
+### Test Data
+
+- Generated 5 test Foundation CSV files in docs/test/:
+  - 26-01 Metro Office Tower ($1.285M, mid-project, healthy)
+  - 26-02 Lakewood High School ($592K, nearly complete)
+  - 26-03 Cleveland Clinic South Wing ($2.185M, over budget)
+  - 26-04 Crocker Park Retail ($153K, $0 remaining)
+  - 26-05 Edison at Gordon Square ($920K, early stage)
+
+## 2026-04-04 (Session 1) — UI Refresh, Branding, Data Fixes
 ======================================
 
 ## Project Organization

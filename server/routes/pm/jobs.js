@@ -44,7 +44,12 @@ function getJobsWithBilling(where, params, cycleId) {
 // GET /api/pm/jobs/charts/revenue - aggregate monthly billings by division
 // Must be defined BEFORE /:jobNo
 router.get('/charts/revenue', (req, res) => {
-  const cycle = getActiveCycle();
+  let cycle;
+  if (req.query.cycle) {
+    cycle = queryOne('SELECT * FROM billing_cycles WHERE id = ?', [parseInt(req.query.cycle)]);
+  } else {
+    cycle = getActiveCycle();
+  }
   if (!cycle) return res.json({ months: [], company_totals: [], by_division: {} });
   const months = JSON.parse(cycle.months);
 

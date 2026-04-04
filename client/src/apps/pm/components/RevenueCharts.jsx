@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import {
   Chart as ChartJS,
@@ -21,14 +21,33 @@ export default function RevenueCharts() {
   const { authFetch } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [cycles, setCycles] = useState([]);
+  const [selectedCycle, setSelectedCycle] = useState('');
 
+  // Fetch available cycles
   useEffect(() => {
-    authFetch('/api/pm/jobs/charts/revenue')
+    authFetch('/api/pm/cycles')
+      .then(r => r.json())
+      .then(list => {
+        setCycles(list);
+        const active = list.find(c => c.is_active);
+        if (active) setSelectedCycle(String(active.id));
+      })
+      .catch(() => {});
+  }, [authFetch]);
+
+  // Fetch chart data when cycle changes
+  const fetchChartData = useCallback(() => {
+    if (!selectedCycle) return;
+    setLoading(true);
+    authFetch(`/api/pm/jobs/charts/revenue?cycle=${selectedCycle}`)
       .then(r => r.json())
       .then(setData)
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [authFetch]);
+  }, [authFetch, selectedCycle]);
+
+  useEffect(() => { fetchChartData(); }, [fetchChartData]);
 
   if (loading) {
     return (
@@ -43,6 +62,7 @@ export default function RevenueCharts() {
   }
 
   const companyTotal = data.company_totals.reduce((s, v) => s + v, 0);
+  const activeCycleName = cycles.find(c => String(c.id) === selectedCycle)?.name || '';
 
   const companyChartData = {
     labels: data.months,
@@ -109,6 +129,24 @@ export default function RevenueCharts() {
 
   return (
     <div className="space-y-6">
+      {/* Cycle Selector */}
+      {cycles.length > 1 && (
+        <div className="flex items-center gap-3">
+          <label className="text-sm font-medium text-gray-600">Billing Cycle:</label>
+          <select
+            value={selectedCycle}
+            onChange={(e) => setSelectedCycle(e.target.value)}
+            className="input-field text-sm w-auto"
+          >
+            {cycles.map(c => (
+              <option key={c.id} value={c.id}>
+                {c.name}{c.is_active ? ' (current)' : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Company Total */}
       <div className="card p-6">
         <div className="flex items-center justify-between mb-4">

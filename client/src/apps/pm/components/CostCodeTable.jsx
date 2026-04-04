@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useAuth } from '../../../context/AuthContext';
+import CurrencyInput from '../../../components/CurrencyInput';
 
 function fmt(val) {
   if (val === null || val === undefined || val === '' || val === 0) return '-';
@@ -13,7 +14,11 @@ export default function CostCodeTable({ jobNo, isLocked, onCTCChange }) {
   const [costCodes, setCostCodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [savingCode, setSavingCode] = useState(null);
+  const [sortCol, setSortCol] = useState(null);
+  const [sortDir, setSortDir] = useState('asc');
   const debounceRefs = useRef({});
+  const onCTCChangeRef = useRef(onCTCChange);
+  onCTCChangeRef.current = onCTCChange;
 
   useEffect(() => {
     authFetch(`/api/pm/jobs/${jobNo}/cost-codes`)
@@ -24,20 +29,20 @@ export default function CostCodeTable({ jobNo, isLocked, onCTCChange }) {
   }, [jobNo, authFetch]);
 
   const handleEstChange = useCallback((costCodeNo, value) => {
-    // Update local state immediately
     setCostCodes(prev => {
       const updated = prev.map(cc =>
         cc.cost_code_no === costCodeNo
           ? { ...cc, pm_revised_est: value === '' ? null : parseFloat(value) }
           : cc
       );
-      // Report CTC change to parent
-      if (onCTCChange) {
+      // Report CTC to parent via ref to avoid re-render cascade
+      if (onCTCChangeRef.current) {
         const pmRevisedTotal = updated.reduce((sum, cc) => {
           return sum + (cc.pm_revised_est != null ? cc.pm_revised_est : (cc.revised_est_cost || 0));
         }, 0);
         const totalCostsToDate = updated.reduce((sum, cc) => sum + (cc.costs_to_date || 0), 0);
-        onCTCChange(pmRevisedTotal, Math.max(0, pmRevisedTotal - totalCostsToDate));
+        // Use setTimeout to defer parent update and avoid synchronous re-render
+        setTimeout(() => onCTCChangeRef.current(pmRevisedTotal, Math.max(0, pmRevisedTotal - totalCostsToDate)), 0);
       }
       return updated;
     });
@@ -54,7 +59,44 @@ export default function CostCodeTable({ jobNo, isLocked, onCTCChange }) {
       } catch {}
       setSavingCode(null);
     }, 1500);
-  }, [jobNo, authFetch, onCTCChange]);
+  }, [jobNo, authFetch]);
+
+  const handleSort = useCallback((col) => {
+    setSortCol(prev => {
+      if (prev === col) {
+        setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+        return col;
+      }
+      setSortDir('asc');
+      return col;
+    });
+  }, []);
+
+  const sortedCodes = useMemo(() => {
+    if (!sortCol) return costCodes;
+    return [...costCodes].sort((a, b) => {
+      let av, bv;
+      if (sortCol === 'remaining') {
+        const estA = a.pm_revised_est != null ? a.pm_revised_est : (a.revised_est_cost || 0);
+        const estB = b.pm_revised_est != null ? b.pm_revised_est : (b.revised_est_cost || 0);
+        av = estA - (a.costs_to_date || 0);
+        bv = estB - (b.costs_to_date || 0);
+      } else if (sortCol === 'over_under') {
+        const estA = a.pm_revised_est != null ? a.pm_revised_est : (a.revised_est_cost || 0);
+        const estB = b.pm_revised_est != null ? b.pm_revised_est : (b.revised_est_cost || 0);
+        av = estA - (a.costs_to_date || 0);
+        bv = estB - (b.costs_to_date || 0);
+      } else if (sortCol === 'pm_est') {
+        av = a.pm_revised_est != null ? a.pm_revised_est : (a.revised_est_cost || 0);
+        bv = b.pm_revised_est != null ? b.pm_revised_est : (b.revised_est_cost || 0);
+      } else {
+        av = a[sortCol];
+        bv = b[sortCol];
+      }
+      if (typeof av === 'string') return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+      return sortDir === 'asc' ? (av || 0) - (bv || 0) : (bv || 0) - (av || 0);
+    });
+  }, [costCodes, sortCol, sortDir]);
 
   if (loading) {
     return (
@@ -70,29 +112,31 @@ export default function CostCodeTable({ jobNo, isLocked, onCTCChange }) {
     );
   }
 
-  // Compute totals
   const totalRevisedEst = costCodes.reduce((s, cc) => s + (cc.revised_est_cost || 0), 0);
   const totalCostsToDate = costCodes.reduce((s, cc) => s + (cc.costs_to_date || 0), 0);
   const totalPMEst = costCodes.reduce((s, cc) => {
     return s + (cc.pm_revised_est !== null && cc.pm_revised_est !== undefined ? cc.pm_revised_est : (cc.revised_est_cost || 0));
   }, 0);
 
+  const sortIcon = (col) => sortCol === col ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '';
+  const thClass = (align) => `px-3 py-2.5 font-semibold text-xs uppercase tracking-wide cursor-pointer hover:bg-white/10 transition-colors select-none ${align || 'text-right'}`;
+
   return (
     <div className="overflow-x-auto rounded-lg border border-gray-200">
       <table className="w-full text-sm">
         <thead className="bg-navy text-white">
           <tr>
-            <th className="px-3 py-2.5 text-left font-semibold text-xs uppercase tracking-wide">Code</th>
-            <th className="px-3 py-2.5 text-left font-semibold text-xs uppercase tracking-wide">Description</th>
-            <th className="px-3 py-2.5 text-right font-semibold text-xs uppercase tracking-wide">Revised Est</th>
-            <th className="px-3 py-2.5 text-right font-semibold text-xs uppercase tracking-wide">Costs to Date</th>
-            <th className="px-3 py-2.5 text-right font-semibold text-xs uppercase tracking-wide">Remaining</th>
-            <th className="px-3 py-2.5 text-right font-semibold text-xs uppercase tracking-wide text-amber-300">PM Est</th>
-            <th className="px-3 py-2.5 text-right font-semibold text-xs uppercase tracking-wide">Over/Under</th>
+            <th className={thClass('text-left')} onClick={() => handleSort('cost_code_no')}>Code{sortIcon('cost_code_no')}</th>
+            <th className={thClass('text-left')} onClick={() => handleSort('description')}>Description{sortIcon('description')}</th>
+            <th className={thClass()} onClick={() => handleSort('revised_est_cost')}>Revised Est{sortIcon('revised_est_cost')}</th>
+            <th className={thClass()} onClick={() => handleSort('costs_to_date')}>Costs to Date{sortIcon('costs_to_date')}</th>
+            <th className={thClass()} onClick={() => handleSort('remaining')}>Remaining{sortIcon('remaining')}</th>
+            <th className={`${thClass()} text-amber-300`} onClick={() => handleSort('pm_est')}>PM Est{sortIcon('pm_est')}</th>
+            <th className={thClass()} onClick={() => handleSort('over_under')}>Over/Under{sortIcon('over_under')}</th>
           </tr>
         </thead>
         <tbody>
-          {costCodes.map((cc, idx) => {
+          {sortedCodes.map((cc, idx) => {
             const effectiveEst = cc.pm_revised_est != null ? cc.pm_revised_est : (cc.revised_est_cost || 0);
             const effectiveRemaining = effectiveEst - (cc.costs_to_date || 0);
             const overUnder = effectiveRemaining;
@@ -111,13 +155,10 @@ export default function CostCodeTable({ jobNo, isLocked, onCTCChange }) {
                   {isLocked ? (
                     <span className="font-mono">{cc.pm_revised_est != null ? fmt(cc.pm_revised_est) : '-'}</span>
                   ) : (
-                    <input
-                      type="number"
-                      step="0.01"
+                    <CurrencyInput
                       value={cc.pm_revised_est != null ? cc.pm_revised_est : ''}
                       onChange={(e) => handleEstChange(cc.cost_code_no, e.target.value)}
-                      onWheel={(e) => e.target.blur()}
-                      placeholder={cc.revised_est_cost ? String(cc.revised_est_cost) : '0'}
+                      placeholder={cc.revised_est_cost ? cc.revised_est_cost.toLocaleString() : '0'}
                       className="w-28 px-2 py-1 border border-gray-300 rounded text-right text-sm font-mono focus:ring-2 focus:ring-sky-400 focus:border-transparent"
                     />
                   )}

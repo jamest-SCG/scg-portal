@@ -1,7 +1,13 @@
 const express = require('express');
-const { getActiveCycle } = require('../../db');
+const { queryAll, getActiveCycle } = require('../../db');
 
 const router = express.Router();
+
+// GET /api/pm/cycles - list all cycles (active first, then archived by date)
+router.get('/', (req, res) => {
+  const cycles = queryAll('SELECT id, name, is_active, created_at, archived_at FROM billing_cycles ORDER BY is_active DESC, created_at DESC');
+  res.json(cycles);
+});
 
 // GET /api/pm/cycles/active - get the active billing cycle
 router.get('/active', (req, res) => {

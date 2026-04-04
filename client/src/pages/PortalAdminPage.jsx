@@ -183,7 +183,7 @@ export default function PortalAdminPage() {
         {/* User Permissions Table */}
         <div className="card overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">User App Permissions</h3>
+            <h3 className="text-lg font-semibold text-gray-900 border-l-4 border-navy pl-3">User App Permissions</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -297,7 +297,7 @@ export default function PortalAdminPage() {
 
         {/* Create User */}
         <div className="card p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Create New User</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 border-l-4 border-navy pl-3">Create New User</h3>
           <form onSubmit={handleCreateUser} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
@@ -371,7 +371,7 @@ export default function PortalAdminPage() {
 
         {/* PIN Reset */}
         <div className="card p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Reset PIN</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 border-l-4 border-navy pl-3">Reset PIN</h3>
           <div className="flex flex-col sm:flex-row gap-3 items-end">
             <div className="w-full sm:w-48">
               <label className="block text-sm font-medium text-gray-700 mb-1">Select User</label>
@@ -425,7 +425,7 @@ export default function PortalAdminPage() {
         {/* Backup Management */}
         <div className="card p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Database Backups</h3>
+            <h3 className="text-lg font-semibold text-gray-900 border-l-4 border-navy pl-3">Database Backups</h3>
             <button
               onClick={async () => {
                 setBackupMsg('');

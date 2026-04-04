@@ -135,8 +135,10 @@ export default function AdminDashboard() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
-                activeTab === tab.id ? 'bg-white text-navy shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-all whitespace-nowrap ${
+                activeTab === tab.id
+                  ? 'bg-navy text-white shadow-md'
+                  : 'text-gray-500 hover:text-navy hover:bg-white'
               }`}
             >
               {tab.label}
@@ -156,19 +158,19 @@ export default function AdminDashboard() {
                 </button>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="bg-gray-50 rounded-lg p-4 text-center">
+                <div className="bg-gray-50 rounded-lg p-4 text-center border-l-4 border-l-navy">
                   <p className="text-3xl font-bold text-navy">{totalJobs}</p>
                   <p className="text-xs text-gray-500 mt-1">Total Jobs</p>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-4 text-center">
+                <div className="bg-gray-50 rounded-lg p-4 text-center border-l-4 border-l-green-500">
                   <p className="text-3xl font-bold text-green-600">{totalSubmitted}</p>
                   <p className="text-xs text-gray-500 mt-1">Submitted</p>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-4 text-center">
+                <div className="bg-gray-50 rounded-lg p-4 text-center border-l-4 border-l-amber-500">
                   <p className="text-3xl font-bold text-yellow-600">{totalJobs - totalSubmitted}</p>
                   <p className="text-xs text-gray-500 mt-1">Pending</p>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-4 text-center">
+                <div className="bg-gray-50 rounded-lg p-4 text-center border-l-4 border-l-blue-500">
                   <p className="text-3xl font-bold text-navy">
                     {totalJobs > 0 ? Math.round((totalSubmitted / totalJobs) * 100) : 0}%
                   </p>
@@ -199,7 +201,7 @@ export default function AdminDashboard() {
                       const allDone = pm.submitted_count === pm.total_jobs && pm.total_jobs > 0;
                       const hasActivity = pm.last_activity;
                       return (
-                        <tr key={i} className="hover:bg-gray-50">
+                        <tr key={i} className={`hover:bg-blue-50 ${i % 2 === 1 ? 'bg-gray-50' : 'bg-white'}`}>
                           <td className="px-4 py-3 text-sm font-medium">{pm.pm}</td>
                           <td className="px-4 py-3 text-sm text-center">{pm.total_jobs}</td>
                           <td className="px-4 py-3 text-sm text-center">{pm.submitted_count}</td>
@@ -313,8 +315,8 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {jobs.map(j => (
-                    <tr key={j.job_no} className="hover:bg-gray-50">
+                  {jobs.map((j, idx) => (
+                    <tr key={j.job_no} className={`hover:bg-blue-50 ${idx % 2 === 1 ? 'bg-gray-50' : 'bg-white'}`}>
                       <td className="px-3 py-2 font-mono font-medium whitespace-nowrap">{j.job_no}</td>
                       <td className="px-3 py-2 max-w-[200px] truncate">{j.job_name}</td>
                       <td className="px-3 py-2 text-center">

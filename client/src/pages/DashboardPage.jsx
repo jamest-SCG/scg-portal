@@ -20,9 +20,21 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30">
         <Header />
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-navy"></div>
-        </div>
+        <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+          <div className="mb-8">
+            <div className="h-8 w-48 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-4 w-64 bg-gray-200 rounded animate-pulse mt-2"></div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1,2,3].map(i => (
+              <div key={i} className="card p-6 space-y-4 animate-pulse">
+                <div className="w-14 h-14 bg-gray-200 rounded-xl"></div>
+                <div className="h-5 w-32 bg-gray-200 rounded"></div>
+                <div className="h-4 w-48 bg-gray-100 rounded"></div>
+              </div>
+            ))}
+          </div>
+        </main>
       </div>
     );
   }
@@ -45,7 +57,7 @@ export default function DashboardPage() {
             <p className="text-sm mt-1">Contact your admin to request access.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
             {apps.map(app => (
               <AppCard key={app.id} app={app} />
             ))}

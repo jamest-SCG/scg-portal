@@ -100,7 +100,7 @@ router.post('/import/confirm', (req, res) => {
       const remaining = footer.left_to_bill || 0;
       const estCost = totals.revised_est_cost || 0;
       const costToDate = totals.costs_to_date || 0;
-      const pctComplete = estCost > 0 ? costToDate / estCost : 0;
+      const pctComplete = contract > 0 ? billed / contract : 0;
 
       if (!existing) {
         // NEW JOB — insert everything
@@ -163,6 +163,23 @@ router.post('/import/confirm', (req, res) => {
 
     runBatch(statements);
 
+    // Revalidate schedules for updated jobs — remaining may have changed
+    const allSubs = queryAll(`
+      SELECT s.job_no, s.feb_26, s.mar_26, s.apr_26, s.may_26, s.jun_26, s.jul_26,
+             s.aug_26, s.sep_26, s.oct_26, s.nov_26, s.dec_26, j.remaining
+      FROM submissions s
+      JOIN jobs j ON s.job_no = j.job_no
+      WHERE s.submitted_at IS NULL
+    `);
+    for (const sub of allSubs) {
+      const sum = [sub.feb_26, sub.mar_26, sub.apr_26, sub.may_26, sub.jun_26, sub.jul_26,
+                   sub.aug_26, sub.sep_26, sub.oct_26, sub.nov_26, sub.dec_26]
+        .reduce((acc, v) => acc + (parseFloat(v) || 0), 0);
+      const rem = sub.remaining || 0;
+      const valid = (Math.abs(rem) <= 0.01) || (rem > 0.01 && sum >= rem - 0.01) ? 1 : 0;
+      run('UPDATE submissions SET schedule_valid = ? WHERE job_no = ?', [valid, sub.job_no]);
+    }
+
     res.json({
       message: `Import complete. ${newCount} new job${newCount !== 1 ? 's' : ''}, ${updateCount} updated.`,
       new_count: newCount,
@@ -195,12 +212,13 @@ router.get('/export', (req, res) => {
 
   const csvRows = [headers.join(',')];
   for (const row of rows) {
+    const fmtVal = (v) => v !== null && v !== undefined ? v : 0;
     const vals = [
       row.job_no,
-      row.feb_26 || 0, row.mar_26 || 0, row.apr_26 || 0, row.may_26 || 0,
-      row.jun_26 || 0, row.jul_26 || 0, row.aug_26 || 0, row.sep_26 || 0,
-      row.oct_26 || 0, row.nov_26 || 0, row.dec_26 || 0,
-      row.ctc_override !== null && row.ctc_override !== undefined ? row.ctc_override : '',
+      fmtVal(row.feb_26), fmtVal(row.mar_26), fmtVal(row.apr_26), fmtVal(row.may_26),
+      fmtVal(row.jun_26), fmtVal(row.jul_26), fmtVal(row.aug_26), fmtVal(row.sep_26),
+      fmtVal(row.oct_26), fmtVal(row.nov_26), fmtVal(row.dec_26),
+      fmtVal(row.ctc_override),
     ];
     if (includeNotes) {
       vals.push(row.notes ? `"${row.notes.replace(/"/g, '""')}"` : '');

@@ -60,7 +60,10 @@ async function start() {
   app.use(express.json({ limit: '10mb' }));
 
   // === Shared Auth Routes (no app gate) ===
-  app.use('/api/auth', loginLimiter, require('./routes/auth'));
+  // Rate limit only login POST routes, not the user list GET
+  app.post('/api/auth/login', loginLimiter);
+  app.post('/api/auth/admin-login', loginLimiter);
+  app.use('/api/auth', require('./routes/auth'));
 
   // === Portal Routes (authenticated, for dashboard + user management) ===
   app.use('/api/portal', authenticateToken, require('./routes/portal'));

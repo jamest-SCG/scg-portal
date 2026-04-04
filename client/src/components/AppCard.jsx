@@ -31,7 +31,7 @@ export default function AppCard({ app }) {
   return (
     <Link
       to={app.path}
-      className="card p-6 hover:shadow-md hover:border-navy-light transition-all group"
+      className="card p-6 hover:shadow-md hover:border-navy-light transition-all group animate-fadeInUp"
     >
       <div className="w-14 h-14 bg-navy/5 rounded-xl flex items-center justify-center text-navy mb-4 group-hover:bg-navy/10 transition-colors">
         {icon}

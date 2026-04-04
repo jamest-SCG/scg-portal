@@ -32,7 +32,7 @@ router.put('/:jobNo', (req, res) => {
   const monthValues = [feb_26, mar_26, apr_26, may_26, jun_26, jul_26, aug_26, sep_26, oct_26, nov_26, dec_26];
   const sum = monthValues.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
   const remaining = job ? (job.remaining || 0) : 0;
-  const schedule_valid = (remaining <= 0.01) || (sum >= remaining - 0.01) ? 1 : 0;
+  const schedule_valid = (Math.abs(remaining) <= 0.01) || (remaining > 0.01 && sum >= remaining - 0.01) ? 1 : 0;
 
   const now = new Date().toISOString();
 
@@ -85,10 +85,23 @@ router.post('/submit/:jobNo', (req, res) => {
     }
   }
 
-  const submission = queryOne('SELECT schedule_valid, submitted_at FROM submissions WHERE job_no = ?', [jobNo]);
+  let submission = queryOne('SELECT schedule_valid, submitted_at FROM submissions WHERE job_no = ?', [jobNo]);
+
+  // If no submission record exists but remaining is $0, auto-create a valid submission
   if (!submission) {
-    return res.status(400).json({ error: 'No submission data found for this job.' });
+    const job = queryOne('SELECT remaining, pm FROM jobs WHERE job_no = ?', [jobNo]);
+    if (job && (job.remaining || 0) <= 0.01) {
+      const now = new Date().toISOString();
+      run(`INSERT INTO submissions (job_no, pm, feb_26, mar_26, apr_26, may_26, jun_26, jul_26,
+        aug_26, sep_26, oct_26, nov_26, dec_26, ctc_override, schedule_valid, last_updated, notes)
+        VALUES (?, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, 1, ?, NULL)`,
+        [jobNo, job.pm || req.user.initials, now]);
+      submission = queryOne('SELECT schedule_valid, submitted_at FROM submissions WHERE job_no = ?', [jobNo]);
+    } else {
+      return res.status(400).json({ error: 'No submission data found for this job.' });
+    }
   }
+
   if (submission.submitted_at) {
     return res.status(400).json({ error: 'This job has already been submitted.' });
   }

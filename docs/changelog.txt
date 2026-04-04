@@ -1,0 +1,103 @@
+SCG Portal — Changelog for 2026-04-04
+======================================
+
+## Project Organization
+
+- Moved reference materials (specs, sample CSVs, screenshots) from SCG_PM_Portal
+  into scg-portal/docs/ (specs/, samples/, screenshots/)
+- Deleted the old SCG_PM_Portal directory — scg-portal is the single source of truth
+- Updated memory references accordingly
+
+## Branding & Logo
+
+- Added Sixth City Glazing logo to header (every page) and login page
+- Logo sits in a clean white rounded container on the navy header
+- Generated high-res transparent PNG (1492x162) from SVG to eliminate
+  off-white background and browser font-rendering inconsistencies
+- SVG version also available at /logo.svg
+
+## UI — Job Card Sections (Color-Coded)
+
+- All expanded JobCard sections now have navy header bars with white text
+- Sections: Job Summary, Cost Code Breakdown, Billing Schedule, Overrides & Notes
+- Cost codes default to open when a card is expanded (previously hidden behind toggle)
+- Cost code table: zebra striping, navy header row, larger font (text-xs -> text-sm),
+  wider PM Est inputs, blue hover on rows, stronger totals footer
+
+## UI — Job Summary Visualizations
+
+- Added icons to all 8 info cells (contract, billed, remaining, % complete,
+  original est, PM revised est, actual to date, cost to complete)
+- Bumped cell font sizes for readability (labels: text-sm, values: text-base font-bold)
+- Added 3 ring charts below the cells:
+  - Billed ring (green): billed / contract percentage
+  - Complete ring (auto-color): billing % complete
+  - Cost Health ring (blue/amber/red): actual spend vs PM estimate
+    - Shows actual percentage (e.g. 137% when over budget)
+    - Full red ring + red tint when over budget, with overage amount displayed
+    - Shows remaining budget when under
+- Rings aligned at top for consistent layout
+
+## UI — Dashboard & Global
+
+- KPI summary cards wrapped in navy-header container matching section style
+- Icons on each KPI card (clipboard, dollar, checkmark)
+- Colored accents: navy (total), amber (remaining), green (submitted)
+- Gradient backgrounds on all pages (gray-50 -> blue-50/30)
+- Header: vertical divider before user info, logout turns red on hover
+- App cards: animated arrow on hover, staggered fade-in animation
+- Skeleton loaders on Dashboard and PM Dashboard (replace spinners)
+- Submit All button: pulsing glow when all jobs valid
+- Submit confirmation page: scale-in checkmark animation, fade-up card
+
+## UI — Admin
+
+- Admin Dashboard tabs: navy active state instead of plain white
+- Zebra striping on PM Status and All Jobs tables
+- Left border accents on Portal Admin section headers
+- Cycle status cards: colored left borders (navy/green/amber/blue)
+- Button polish: subtle scale on hover/click for all btn-primary/secondary/outline
+- Inline editing of user names AND initials in Portal Admin table
+
+## UI — Confirm Modals
+
+- Replaced browser window.confirm() with styled in-app ConfirmModal component
+- Applied to single job submit and Submit All
+- Navy header, message body, Cancel/Confirm buttons, backdrop overlay, fade animation
+
+## Security
+
+- Login rate limit tightened: 5 attempts per 2 minutes (was 10 per minute)
+- Rate limiter now only applies to POST /api/auth/login and /api/auth/admin-login
+  (previously applied to all /api/auth routes including the user list GET,
+  which caused white-screen lockouts after normal page loads)
+
+## Backend — User Management
+
+- PUT /api/portal/users/:id now supports editing both name and initials
+- Initials validation: checks for uniqueness, auto-uppercases
+
+## Bug Fixes
+
+- Fixed: Jobs with $0 remaining could not be submitted (no submission record existed)
+  - Server now auto-creates a valid submission record for $0-remaining jobs on submit
+- Fixed: % Complete was calculated as cost-based (costToDate / estCost) which exceeded
+  100% for over-budget jobs. Changed to billing-based (billed / contract)
+  - Updated existing jobs in production database
+- Fixed: Database overwrite during deploy — rsync without --exclude 'server/data'
+  pushed local dev DB to production. Restored from 2:00 AM EST daily backup.
+
+## Data Integrity Fixes (Audit)
+
+1. Cost code Remaining column now dynamic — recalculates based on PM's revised
+   estimate instead of showing static Foundation import value
+2. Cost code footer Over/Under now uses PM estimates instead of Foundation originals
+   - Shows red when negative, green when positive
+3. CSV re-import now revalidates all unsubmitted schedules — if remaining-to-bill
+   changes, schedule_valid is recalculated so stale validations don't persist
+4. Negative remaining edge case fixed — jobs with slightly negative remaining
+   (due to rounding) are treated as $0 remaining, not "any schedule is valid"
+5. Export null handling made consistent — all null values export as 0
+6. CTC (Cost to Complete) remains clamped at $0 — a negative CTC is logically
+   impossible (can't have negative remaining cost). Over-budget visibility is
+   handled by Cost Health ring, warning banners, and red row highlights instead.

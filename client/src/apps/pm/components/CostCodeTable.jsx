@@ -93,7 +93,10 @@ export default function CostCodeTable({ jobNo, isLocked, onCTCChange }) {
         </thead>
         <tbody>
           {costCodes.map((cc, idx) => {
-            const overBudget = cc.costs_to_date > (cc.revised_est_cost || 0) && cc.revised_est_cost > 0;
+            const effectiveEst = cc.pm_revised_est != null ? cc.pm_revised_est : (cc.revised_est_cost || 0);
+            const effectiveRemaining = effectiveEst - (cc.costs_to_date || 0);
+            const overUnder = effectiveRemaining;
+            const overBudget = cc.costs_to_date > effectiveEst && effectiveEst > 0;
             const stripe = idx % 2 === 0 ? 'bg-white' : 'bg-gray-50';
             return (
               <tr key={cc.cost_code_no} className={overBudget ? 'bg-red-50' : `${stripe} hover:bg-blue-50`}>
@@ -101,7 +104,9 @@ export default function CostCodeTable({ jobNo, isLocked, onCTCChange }) {
                 <td className="px-3 py-2 truncate max-w-[200px] text-gray-800">{cc.description}</td>
                 <td className="px-3 py-2 text-right font-mono text-gray-700">{fmt(cc.revised_est_cost)}</td>
                 <td className="px-3 py-2 text-right font-mono text-gray-700">{fmt(cc.costs_to_date)}</td>
-                <td className="px-3 py-2 text-right font-mono text-gray-700">{fmt(cc.remaining_budget)}</td>
+                <td className={`px-3 py-2 text-right font-mono ${effectiveRemaining < 0 ? 'text-red-600' : 'text-gray-700'}`}>
+                  {fmt(effectiveRemaining)}
+                </td>
                 <td className="px-3 py-2 text-right">
                   {isLocked ? (
                     <span className="font-mono">{cc.pm_revised_est != null ? fmt(cc.pm_revised_est) : '-'}</span>
@@ -121,9 +126,9 @@ export default function CostCodeTable({ jobNo, isLocked, onCTCChange }) {
                   )}
                 </td>
                 <td className={`px-3 py-2 text-right font-mono font-medium ${
-                  (cc.projected_over_under || 0) < 0 ? 'text-red-600' : 'text-green-600'
+                  overUnder < 0 ? 'text-red-600' : 'text-green-600'
                 }`}>
-                  {fmt(cc.projected_over_under)}
+                  {fmt(overUnder)}
                 </td>
               </tr>
             );
@@ -134,9 +139,9 @@ export default function CostCodeTable({ jobNo, isLocked, onCTCChange }) {
             <td className="px-3 py-2.5 text-gray-800" colSpan={2}>Totals</td>
             <td className="px-3 py-2.5 text-right font-mono text-gray-800">{fmt(totalRevisedEst)}</td>
             <td className="px-3 py-2.5 text-right font-mono text-gray-800">{fmt(totalCostsToDate)}</td>
-            <td className="px-3 py-2.5 text-right font-mono text-gray-800">{fmt(totalRevisedEst - totalCostsToDate)}</td>
+            <td className={`px-3 py-2.5 text-right font-mono ${(totalPMEst - totalCostsToDate) < 0 ? 'text-red-600' : 'text-gray-800'}`}>{fmt(totalPMEst - totalCostsToDate)}</td>
             <td className="px-3 py-2.5 text-right font-mono text-amber-700">{fmt(totalPMEst)}</td>
-            <td className="px-3 py-2.5 text-right font-mono text-gray-800">{fmt(totalRevisedEst - totalCostsToDate)}</td>
+            <td className={`px-3 py-2.5 text-right font-mono font-bold ${(totalPMEst - totalCostsToDate) < 0 ? 'text-red-600' : 'text-green-600'}`}>{fmt(totalPMEst - totalCostsToDate)}</td>
           </tr>
         </tfoot>
       </table>

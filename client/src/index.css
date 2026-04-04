@@ -11,20 +11,23 @@
 @layer components {
   .btn-primary {
     @apply bg-navy text-white px-4 py-2 rounded-lg font-medium
-           hover:bg-navy-dark transition-colors duration-150
-           disabled:opacity-50 disabled:cursor-not-allowed;
+           hover:bg-navy-dark hover:scale-[1.02] active:scale-[0.98]
+           transition-all duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
   }
 
   .btn-secondary {
     @apply bg-navy-light text-white px-4 py-2 rounded-lg font-medium
-           hover:bg-navy transition-colors duration-150
-           disabled:opacity-50 disabled:cursor-not-allowed;
+           hover:bg-navy hover:scale-[1.02] active:scale-[0.98]
+           transition-all duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
   }
 
   .btn-outline {
     @apply border border-navy text-navy px-4 py-2 rounded-lg font-medium
-           hover:bg-navy hover:text-white transition-colors duration-150
-           disabled:opacity-50 disabled:cursor-not-allowed;
+           hover:bg-navy hover:text-white hover:scale-[1.02] active:scale-[0.98]
+           transition-all duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
   }
 
   .input-field {
@@ -37,6 +40,42 @@
     @apply bg-white rounded-xl shadow-sm border border-gray-200;
   }
 }
+
+/* Animations */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.5); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(31, 78, 121, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(31, 78, 121, 0); }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.4s ease-out both;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.animate-glowPulse {
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+/* Stagger children animations */
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 50ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 100ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 150ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 200ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 250ms; }
 
 /* Number input - hide arrows */
 input[type="number"]::-webkit-inner-spin-button,

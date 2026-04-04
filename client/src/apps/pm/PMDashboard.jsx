@@ -18,7 +18,6 @@ export default function PMDashboard() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [showCharts, setShowCharts] = useState(false);
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -126,18 +125,6 @@ export default function PMDashboard() {
           </div>
         )}
 
-        {/* Revenue Charts Toggle */}
-        <button
-          onClick={() => setShowCharts(!showCharts)}
-          className="text-sm text-navy hover:text-navy-dark font-medium flex items-center gap-1"
-        >
-          <svg className={`w-3 h-3 transition-transform ${showCharts ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-          {showCharts ? 'Hide Revenue Overview' : 'Show Revenue Overview'}
-        </button>
-        {showCharts && <RevenueCharts />}
-
         {/* Summary Strip */}
         <div className="grid grid-cols-3 gap-3">
           <div className="card px-4 py-3 text-center">
@@ -208,6 +195,9 @@ export default function PMDashboard() {
             </button>
           </div>
         )}
+
+        {/* Revenue Overview */}
+        <RevenueCharts />
       </main>
     </div>
   );

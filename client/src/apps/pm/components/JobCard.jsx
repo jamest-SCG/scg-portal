@@ -445,31 +445,26 @@ function LabeledRing({ label, pct, detail, color }) {
 }
 
 function CostHealthRing({ actual, estimate }) {
-  const ratio = estimate > 0 ? actual / estimate : 0;
-  const isOver = ratio > 1;
-  const isWarning = ratio > 0.8 && !isOver;
+  const remaining = estimate - actual;
+  const remainingPct = estimate > 0 ? Math.max(0, remaining / estimate) : 0;
+  const isOver = remaining < 0;
+  const isWarning = remainingPct > 0 && remainingPct < 0.2;
   const r = 28;
   const circ = 2 * Math.PI * r;
-  // Ring fills fully when at or over budget
-  const fillPct = Math.min(ratio, 1);
-  const offset = circ * (1 - fillPct);
+  const offset = circ * (1 - remainingPct);
 
-  const strokeColor = isOver ? '#dc2626' : isWarning ? '#d97706' : '#2563eb';
-  const bgFill = isOver ? '#fef2f2' : 'none'; // red tint background when over
+  const strokeColor = isOver ? '#dc2626' : isWarning ? '#d97706' : '#16a34a';
+  const bgFill = isOver ? '#fef2f2' : 'none';
   const textColor = isOver ? '#dc2626' : '#374151';
-  const displayPct = Math.round(ratio * 100);
-  const overage = actual - estimate;
+  const displayPct = Math.round(remainingPct * 100);
 
   let statusLabel, statusColor;
   if (isOver) {
-    statusLabel = `+${fmt(overage)} over`;
+    statusLabel = `+${fmt(Math.abs(remaining))} over`;
     statusColor = 'text-red-600 font-semibold';
-  } else if (isWarning) {
-    statusLabel = `${fmt(estimate - actual)} left`;
-    statusColor = 'text-amber-600';
   } else {
-    statusLabel = `${fmt(estimate - actual)} left`;
-    statusColor = 'text-blue-600';
+    statusLabel = `${fmt(remaining)} left`;
+    statusColor = isWarning ? 'text-amber-600' : 'text-green-600';
   }
 
   return (
@@ -488,7 +483,7 @@ function CostHealthRing({ actual, estimate }) {
           {displayPct}%
         </text>
       </svg>
-      <p className="text-xs font-semibold text-gray-700">Cost Health</p>
+      <p className="text-xs font-semibold text-gray-700">Budget Left</p>
       <p className={`text-xs ${statusColor}`}>{statusLabel}</p>
       <p className="text-xs text-gray-600">{fmt(actual)} / {fmt(estimate)}</p>
     </div>
